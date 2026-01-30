@@ -1,0 +1,275 @@
+/* 全屏容器 */
+.app-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+/* 顶部城市选择器 */
+.top-bar {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 100;
+}
+
+/* 悬浮面板容器 */
+.floating-panels-left {
+  position: fixed;
+  top: 70px;
+  left: 16px;
+  bottom: 16px;
+  width: 340px;
+  z-index: 99;
+  pointer-events: none;
+}
+
+.floating-panels-right {
+  position: fixed;
+  top: 70px;
+  right: 16px;
+  width: 320px;
+  max-height: calc(100vh - 140px);
+  z-index: 99;
+  pointer-events: none;
+}
+
+/* 悬浮面板 */
+.floating-panel {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  pointer-events: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 面板头部 */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: white;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.panel-header:hover {
+  background: #fafafa;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.title-icon {
+  font-size: 18px;
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.toggle-icon {
+  font-size: 12px;
+  color: #9ca3af;
+  transition: transform 0.3s;
+}
+
+.collapsed .toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* 收起状态的面板 */
+.floating-panel.collapsed {
+  flex-shrink: 0;
+}
+
+/* 地点面板 */
+.location-panel-wrapper {
+  height: 80%;
+  display: flex;
+  flex-direction: column;
+}
+
+.location-panel-wrapper.expanded > *:not(.panel-header) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* POI面板 */
+.poi-panel-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.poi-panel-wrapper.expanded > *:not(.panel-header) {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 中点卡片 */
+.midpoint-card {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  z-index: 98;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.midpoint-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  font-size: 20px;
+}
+
+.midpoint-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.midpoint-label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.midpoint-coords {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  font-family: monospace;
+}
+
+/* 欢迎提示 */
+.welcome-tip {
+  position: fixed;
+  /* top: 50%; */
+  /* left: 50%; */
+  /* transform: translate(-50%, -50%); */
+  right: 16px;
+  top: 16px;
+  z-index: 97;
+  pointer-events: none;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.tip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.tip-icon {
+  font-size: 40px;
+}
+
+.tip-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.tip-sub {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .floating-panels-left {
+    width: calc(100% - 32px);
+    max-height: 50vh;
+  }
+
+  .floating-panels-right {
+    width: calc(100% - 32px);
+    top: auto;
+    bottom: 80px;
+    max-height: 40vh;
+  }
+
+  .midpoint-card {
+    left: 16px;
+    right: 16px;
+    transform: none;
+    bottom: 16px;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

@@ -1,0 +1,35 @@
+export interface LocationPoint {
+  id: string
+  name: string
+  address?: string
+  lng: number
+  lat: number
+}
+
+export interface MidPoint extends LocationPoint {}
+
+export interface POI {
+  id: string
+  name: string
+  address: string
+  lng: number
+  lat: number
+  distance?: number
+  rating?: number
+  type?: string
+}
+
+export interface City {
+  name: string
+  adcode: string
+  center?: {
+    lng: number
+    lat: number
+  }
+}
+
+export type SearchType = '餐厅' | '咖啡厅' | '商场' | '酒吧' | 'custom'
+
+export type SearchRadius = 500 | 1000 | 2000 | 3000
+
+export type NavMode = 'drive' | 'walk' | 'bus'

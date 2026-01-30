@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  meetpoint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: meetpoint-web
+    ports:
+      - "38080:80"
+    restart: unless-stopped
+    environment:
+      - NGINX_HOST=localhost
+    # 如果需要代理后端 API，取消下面的注释
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    networks:
+      - meetpoint-network
+
+networks:
+  meetpoint-network:
+    driver: bridge
