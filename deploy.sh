@@ -11,7 +11,7 @@ SERVER_IP="your-server-ip"  # 请修改为实际服务器IP
 IMAGE_TAG="${IMAGE_NAME}:latest"
 
 # 项目路径（服务器上的路径）
-REMOTE_PATH="/root/docker/meetpoint"
+REMOTE_PATH="/root/docker/Where-are-you-all-going-to-play"
 # 如果是本地部署，不需要 SSH
 LOCAL_DEPLOY=true
 
