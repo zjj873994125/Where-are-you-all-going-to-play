@@ -18,10 +18,11 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchRadius, setSearchRadius] = useState<SearchRadius>(1000)
 
-  // 卡片收起/展开状态
+  // 卡片收起/展开状态（移动端默认收起）
+  const isMobile = window.innerWidth <= 768
   const [panelStates, setPanelStates] = useState({
-    location: true,
-    poi: true,
+    location: !isMobile,
+    poi: false,
   })
 
   // 首次进入自动获取当前城市

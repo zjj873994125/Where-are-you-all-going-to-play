@@ -14,8 +14,8 @@
 /* 顶部城市选择器 */
 .top-bar {
   position: fixed;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   z-index: 100;
 }
 
@@ -190,76 +190,133 @@
   font-family: monospace;
 }
 
-/* 欢迎提示 */
+/* 欢迎提示 - 隐藏 */
 .welcome-tip {
-  position: fixed;
-  /* top: 50%; */
-  /* left: 50%; */
-  /* transform: translate(-50%, -50%); */
-  right: 16px;
-  top: 16px;
-  z-index: 97;
-  pointer-events: none;
-  animation: fadeIn 0.5s ease-out;
+  display: none;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
-.tip-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 24px 32px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.tip-icon {
-  font-size: 40px;
-}
-
-.tip-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.tip-sub {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-/* 响应式 */
+/* 移动端适配 */
 @media (max-width: 768px) {
-  .floating-panels-left {
-    width: calc(100% - 32px);
-    max-height: 50vh;
+  .top-bar {
+    top: 8px;
+    left: 8px;
   }
 
-  .floating-panels-right {
-    width: calc(100% - 32px);
+  .city-selector-trigger {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .city-name {
+    max-width: 80px;
+  }
+
+  /* 左侧面板 - 移动端改为底部可滑动 */
+  .floating-panels-left {
     top: auto;
     bottom: 80px;
-    max-height: 40vh;
+    left: 12px;
+    width: auto;
+    height: auto;
+    z-index: 99;
+    pointer-events: none;
   }
 
+  .location-panel-wrapper {
+    height: auto;
+    max-height: 55vh;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+  }
+
+  .location-panel-wrapper.collapsed {
+    max-height: 48px;
+    border-radius: 50%;
+    width: 48px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .location-panel-wrapper.collapsed .panel-header {
+    padding: 12px;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .location-panel-wrapper.collapsed .panel-header:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .location-panel-wrapper.collapsed .panel-title,
+  .location-panel-wrapper.collapsed .toggle-icon {
+    display: none;
+  }
+
+  .location-panel-wrapper.collapsed .title-icon {
+    margin: 0;
+    color: white;
+  }
+
+  /* 右侧面板 - 移动端改为底部面板 */
+  .floating-panels-right {
+    top: auto;
+    bottom: 80px;
+    right: 12px;
+    left: auto;
+    width: auto;
+    max-height: 55vh;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .poi-panel-wrapper {
+    max-height: 55vh;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+  }
+
+  .poi-panel-wrapper.collapsed {
+    max-height: 48px;
+    border-radius: 50%;
+    width: 48px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .poi-panel-wrapper.collapsed .panel-header {
+    padding: 12px;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .poi-panel-wrapper.collapsed .panel-header:hover {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .poi-panel-wrapper.collapsed .panel-title,
+  .poi-panel-wrapper.collapsed .toggle-icon {
+    display: none;
+  }
+
+  .poi-panel-wrapper.collapsed .title-icon {
+    margin: 0;
+    color: white;
+  }
+
+  /* 中点卡片 - 移动端调整 */
   .midpoint-card {
-    left: 16px;
-    right: 16px;
+    left: 8px;
+    right: 8px;
     transform: none;
-    bottom: 16px;
+    bottom: 8px;
+    padding: 10px 16px;
+    z-index: 97;
   }
 
   @keyframes slideUp {
@@ -271,5 +328,42 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  /* POI列表在移动端优化 */
+  .poi-items-list {
+    max-height: calc(60vh - 120px) !important;
+  }
+
+  /* 地点列表在移动端优化 */
+  .locations-list {
+    max-height: calc(60vh - 200px) !important;
+  }
+}
+
+/* 超小屏幕适配 */
+@media (max-width: 375px) {
+  .floating-panels-left {
+    bottom: 70px;
+    left: 8px;
+  }
+
+  .floating-panels-right {
+    bottom: 70px;
+    right: 8px;
+  }
+
+  .location-panel-wrapper,
+  .poi-panel-wrapper {
+    max-height: 60vh;
+    max-width: calc(100vw - 16px);
+  }
+
+  .poi-items-list {
+    max-height: calc(60vh - 120px) !important;
+  }
+
+  .locations-list {
+    max-height: calc(60vh - 200px) !important;
   }
 }
