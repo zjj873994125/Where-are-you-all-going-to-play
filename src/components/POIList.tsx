@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { List, Empty, Space, Badge, Typography } from 'antd'
-import { EnvironmentOutlined, CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
+import { List, Typography } from 'antd'
+import { CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
 import { POI, NavMode } from '@/types'
 import { generateAmapNavUrl } from '@/utils/mapCalc'
 

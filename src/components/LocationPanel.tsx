@@ -21,7 +21,7 @@ import {
   JavaOutlined,
   ThunderboltOutlined
 } from '@ant-design/icons'
-import { LocationPoint, SearchType, SearchRadius, City } from '@/types'
+import { LocationPoint, SearchType, SearchRadius } from '@/types'
 import { searchByKeyword } from '@/utils/amap'
 
 const { Text } = Typography
@@ -33,7 +33,6 @@ interface LocationPanelProps {
   onClearAll: () => void
   onSearch: (type: SearchType, keyword?: string, radius?: SearchRadius) => void
   isSearching: boolean
-  currentCity?: City | null
   searchRadius?: SearchRadius
   onSearchRadiusChange?: (radius: SearchRadius) => void
 }
@@ -64,7 +63,6 @@ export default function LocationPanel({
   onClearAll,
   onSearch,
   isSearching,
-  currentCity,
   searchRadius = 1000,
   onSearchRadiusChange,
 }: LocationPanelProps) {
@@ -90,7 +88,7 @@ export default function LocationPanel({
     setSearchResults(results)
   }
 
-  const handleSelectSearch = (value: string, option: any) => {
+  const handleSelectSearch = (_value: string, option: any) => {
     const result = option.data
     onAddPoint({
       id: Date.now().toString(),

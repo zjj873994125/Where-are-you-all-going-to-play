@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { message } from 'antd'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
@@ -203,7 +203,6 @@ function App() {
               onClearAll={handleClearAll}
               onSearch={handleSearch}
               isSearching={isSearching}
-              currentCity={currentCity}
               searchRadius={searchRadius}
               onSearchRadiusChange={setSearchRadius}
             />
