@@ -41,7 +41,7 @@ deploy_local() {
 
     # 构建镜像
     echo_info ">>> 构建 Docker 镜像..."
-    docker build -t $IMAGE_TAG || {
+    docker build -t $IMAGE_TAG . || {
         echo_error "Docker 构建失败"
         exit 1
     }
@@ -87,7 +87,7 @@ deploy_remote() {
 
     # 构建
     echo_info ">>> 构建 Docker 镜像..."
-    docker build -t $IMAGE_TAG || {
+    docker build -t $IMAGE_TAG . || {
         echo_error "Docker 构建失败"
         exit 1
     }
