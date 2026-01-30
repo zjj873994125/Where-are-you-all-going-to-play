@@ -43,7 +43,6 @@ export async function searchPOI(
 
   return new Promise((resolve) => {
     const placeSearch = new window.AMap.PlaceSearch({
-      type: keyword,
       pageSize: 20,
       pageIndex: 1,
     })
@@ -65,6 +64,7 @@ export async function searchPOI(
           }))
           resolve(pois)
         } else {
+          console.log('searchPOI result:', status, result)
           resolve([])
         }
       }
