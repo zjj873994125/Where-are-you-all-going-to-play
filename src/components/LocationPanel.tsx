@@ -28,6 +28,7 @@ interface LocationPanelProps {
   onRemovePoint: (id: string) => void
   onClearAll: () => void
   onSearch: (type: SearchType, keyword?: string, radius?: SearchRadius) => void
+  onLocatePoint?: (point: LocationPoint) => void
   isSearching: boolean
   searchRadius?: SearchRadius
   onSearchRadiusChange?: (radius: SearchRadius)=> void
@@ -67,6 +68,7 @@ export default function LocationPanel({
   onRemovePoint,
   onClearAll,
   onSearch,
+  onLocatePoint,
   isSearching,
   searchRadius = 1000,
   onSearchRadiusChange,
@@ -188,13 +190,15 @@ export default function LocationPanel({
             renderItem={(point, index) => (
               <List.Item
                 className="location-item"
+                style={{ cursor: 'pointer' }}
+                onClick={() => onLocatePoint?.(point)}
                 actions={[
                   <Button
                     type="text"
                     danger
                     size="small"
                     icon={<DeleteOutlined />}
-                    onClick={() => onRemovePoint(point.id)}
+                    onClick={(e) => { e.stopPropagation(); onRemovePoint(point.id) }}
                   />
                 ]}
               >

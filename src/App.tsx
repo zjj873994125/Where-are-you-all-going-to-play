@@ -21,6 +21,7 @@ function App() {
   const [activeSearchType, setActiveSearchType] = useState<SearchType | null>(null)
   const [poiDetail, setPoiDetail] = useState<POIDetail | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [focusPoint, setFocusPoint] = useState<LocationPoint | null>(null)
 
   // 卡片收起/展开状态（移动端默认收起）
   const isMobile = window.innerWidth <= 768
@@ -200,6 +201,7 @@ function App() {
         pois={pois}
         searchType={activeSearchType}
         onSelectPOI={handleSelectPOI}
+        focusPoint={focusPoint}
       />
 
       {/* 顶部栏 - 城市选择器和搜索范围 */}
@@ -240,6 +242,7 @@ function App() {
               onRemovePoint={handleRemovePoint}
               onClearAll={handleClearAll}
               onSearch={handleSearch}
+              onLocatePoint={setFocusPoint}
               isSearching={isSearching}
               searchRadius={searchRadius}
               onSearchRadiusChange={setSearchRadius}

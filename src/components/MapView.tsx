@@ -11,6 +11,7 @@ interface MapViewProps {
   pois?: POI[]
   searchType?: SearchType | null
   onSelectPOI?: (poi: POI) => void
+  focusPoint?: LocationPoint | null
 }
 
 // 搜索类型对应的图标和颜色配置
@@ -76,7 +77,7 @@ function getCityCenter(city: City | null | undefined): [number, number] {
   return cityCenterMap['北京']
 }
 
-export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI }: MapViewProps) {
+export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -133,6 +134,12 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
       if (checkAMap) clearInterval(checkAMap)
     }
   }, [currentCity])
+
+  // 点击地点列表时平移地图到该点
+  useEffect(() => {
+    if (!mapInstanceRef.current || !focusPoint) return
+    mapInstanceRef.current.setCenter([focusPoint.lng, focusPoint.lat])
+  }, [focusPoint])
 
   // 绘制/更新搜索范围圆圈
   useEffect(() => {
