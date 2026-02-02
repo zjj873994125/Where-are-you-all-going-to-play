@@ -81,6 +81,8 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const poiMarkersRef = useRef<any[]>([])
+  const clusterRef = useRef<any>(null)
+  const selectedMarkerRef = useRef<any>(null)
   const circleRef = useRef<any>(null)
   const initializedCityRef = useRef<string | null>(null)
 
@@ -213,55 +215,159 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     }
   }, [points, midPoint])
 
-  // 更新 POI 标记
+  // 更新 POI 标记（使用点聚合）
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
-    // 清除旧的 POI 标记
+    const map = mapInstanceRef.current
+
+    // 清除旧的聚合和标记
+    if (clusterRef.current) {
+      clusterRef.current.setMap(null)
+      clusterRef.current = null
+    }
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.setMap(null)
+      selectedMarkerRef.current = null
+    }
     poiMarkersRef.current.forEach((marker) => marker?.setMap(null))
     poiMarkersRef.current = []
 
-    const map = mapInstanceRef.current
+    if (pois.length === 0) return
+
     const iconConfig = searchType ? searchTypeIconConfig[searchType] : searchTypeIconConfig['custom']
 
-    pois.forEach((poi) => {
-      const isSelected = selectedPOI?.id === poi.id
-      const markerContent = `
+    // 分离选中和未选中的 POI
+    const unselectedPois = pois.filter(poi => selectedPOI?.id !== poi.id)
+    const selectedPoiData = pois.find(poi => selectedPOI?.id === poi.id)
+
+    // 渲染选中的 POI（单独显示，不参与聚合）
+    if (selectedPoiData) {
+      const selectedContent = `
         <div style="
           display: flex;
           align-items: center;
           justify-content: center;
-          width: ${isSelected ? '32px' : '24px'};
-          height: ${isSelected ? '32px' : '24px'};
-          background: ${isSelected ? iconConfig.color : 'white'};
-          border: 2px solid ${iconConfig.color};
+          width: 36px;
+          height: 36px;
+          background: ${iconConfig.color};
+          border: 3px solid white;
           border-radius: 50%;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-          transition: all 0.2s;
+          box-shadow: 0 3px 10px rgba(0,0,0,0.3);
         ">
           <i class="iconfont ${iconConfig.icon}" style="
-            font-size: ${isSelected ? '25px' : '18px'};
-            color: ${isSelected ? 'white' : iconConfig.color};
+            font-size: 22px;
+            color: white;
           "></i>
         </div>
       `
-
-      const marker = new window.AMap.Marker({
-        position: [poi.lng, poi.lat],
-        content: markerContent,
-        offset: new window.AMap.Pixel(isSelected ? -16 : -12, isSelected ? -16 : -12),
-        title: poi.name,
-        zIndex: isSelected ? 100 : 80,
+      const selectedMarker = new window.AMap.Marker({
+        position: [selectedPoiData.lng, selectedPoiData.lat],
+        content: selectedContent,
+        offset: new window.AMap.Pixel(-18, -18),
+        title: selectedPoiData.name,
+        zIndex: 200,
       })
+      selectedMarker.on('click', () => onSelectPOI?.(selectedPoiData))
+      selectedMarker.setMap(map)
+      selectedMarkerRef.current = selectedMarker
+    }
 
-      // 添加点击事件
-      marker.on('click', () => {
-        onSelectPOI?.(poi)
+    // 使用点聚合处理未选中的 POI
+    if (unselectedPois.length > 0 && window.AMap.MarkerCluster) {
+      // 转换为数据点格式
+      const dataPoints = unselectedPois.map(poi => ({
+        lnglat: [poi.lng, poi.lat],
+        poi: poi, // 存储原始数据
+      }))
+
+      const cluster = new window.AMap.MarkerCluster(map, dataPoints, {
+        gridSize: 20,
+        maxZoom: 14,
+        // 渲染单个点
+        renderMarker: (context: any) => {
+          const poi = context.data[0].poi
+          const content = `
+            <div style="
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 28px;
+              height: 28px;
+              background: white;
+              border: 2px solid ${iconConfig.color};
+              border-radius: 50%;
+              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+              cursor: pointer;
+            ">
+              <i class="iconfont ${iconConfig.icon}" style="
+                font-size: 16px;
+                color: ${iconConfig.color};
+              "></i>
+            </div>
+          `
+          context.marker.setContent(content)
+          context.marker.setOffset(new window.AMap.Pixel(-14, -14))
+          context.marker.on('click', () => onSelectPOI?.(poi))
+        },
+        // 渲染聚合点
+        renderClusterMarker: (context: any) => {
+          const count = context.count
+          const div = document.createElement('div')
+          div.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: ${iconConfig.color};
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+          `
+          div.innerText = count > 99 ? '99+' : String(count)
+          context.marker.setContent(div)
+          context.marker.setOffset(new window.AMap.Pixel(-20, -20))
+        },
       })
-
-      marker.setMap(map)
-      poiMarkersRef.current.push(marker)
-    })
+      clusterRef.current = cluster
+    } else if (unselectedPois.length > 0) {
+      // MarkerCluster 不可用时，直接添加标记
+      unselectedPois.forEach((poi) => {
+        const content = `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: white;
+            border: 2px solid ${iconConfig.color};
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          ">
+            <i class="iconfont ${iconConfig.icon}" style="
+              font-size: 16px;
+              color: ${iconConfig.color};
+            "></i>
+          </div>
+        `
+        const marker = new window.AMap.Marker({
+          position: [poi.lng, poi.lat],
+          content: content,
+          offset: new window.AMap.Pixel(-14, -14),
+          title: poi.name,
+          zIndex: 80,
+        })
+        marker.on('click', () => onSelectPOI?.(poi))
+        marker.setMap(map)
+        poiMarkersRef.current.push(marker)
+      })
+    }
   }, [pois, selectedPOI, searchType, onSelectPOI])
 
   return (
