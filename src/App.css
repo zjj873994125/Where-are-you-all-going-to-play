@@ -17,6 +17,9 @@
   top: 12px;
   left: 12px;
   z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* 悬浮面板容器 */
@@ -136,41 +139,31 @@
 
 /* 中点卡片 */
 .midpoint-card {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
+  border-radius: 5px;
+  gap: 10px;
+  padding: 4px 14px;
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
-  z-index: 98;
-  animation: slideUp 0.3s ease-out;
+  /* border-radius: 12px; */
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  animation: fadeInCard 0.2s ease-out;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+@keyframes fadeInCard {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .midpoint-icon {
-  width: 40px;
-  height: 40px;
+  width: 25px;
+  height: 25px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  font-size: 20px;
+  border-radius: 8px;
+  font-size: 16px;
 }
 
 .midpoint-info {
@@ -184,10 +177,11 @@
 }
 
 .midpoint-coords {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #1f2937;
   font-family: monospace;
+  margin-top: -3px;
 }
 
 /* 欢迎提示 - 隐藏 */
@@ -311,23 +305,24 @@
 
   /* 中点卡片 - 移动端调整 */
   .midpoint-card {
-    left: 8px;
-    right: 8px;
-    transform: none;
-    bottom: 8px;
-    padding: 10px 16px;
-    z-index: 97;
+    padding: 2px 10px;
+    gap: 8px;
+    border-radius: 5px;
   }
 
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .midpoint-icon {
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+  }
+
+  .midpoint-label {
+    font-size: 11px;
+  }
+
+  .midpoint-coords {
+    font-size: 12px;
+    margin-top: -3px;
   }
 
   /* POI列表在移动端优化 */
@@ -370,6 +365,7 @@
 
 /* POI 详情卡片 */
 .poi-detail-card {
+  position: relative;
   margin-top: 12px;
   background: white;
   border-radius: 16px;
@@ -377,6 +373,24 @@
   overflow: hidden;
   animation: cardFadeIn 0.2s ease-out;
   pointer-events: auto;
+}
+
+.detail-card-close {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
 }
 
 @keyframes cardFadeIn {
@@ -567,11 +581,34 @@
 /* 移动端详情卡片适配 */
 @media (max-width: 768px) {
   .poi-detail-card {
-    margin-top: 10px;
+    position: fixed;
+    bottom: 70px;
+    left: 12px;
+    right: 12px;
+    margin-top: 0;
+    max-height: 45vh;
+    overflow-y: auto;
+    z-index: 101;
+    animation: slideUpCard 0.25s ease-out;
+  }
+
+  .detail-card-close {
+    display: flex;
+  }
+
+  @keyframes slideUpCard {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .detail-card-photos {
-    height: 120px;
+    height: 350px;
   }
 
   .detail-card-content {

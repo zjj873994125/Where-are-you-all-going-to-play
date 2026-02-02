@@ -44,6 +44,9 @@ const searchTypeConfig = [
   { type: '酒吧' as SearchType, icon: <Icon type="icon-jiubajiulang" />, color: '#fd7e14', bgColor: '#fff4e6' },
   { type: '酒店' as SearchType, icon: <Icon type="icon-jiudian" />, color: '#20c997', bgColor: '#e6fcf5' },
   { type: '医院' as SearchType, icon: <Icon type="icon-yiyuan" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '地铁站' as SearchType, icon: <Icon type="icon-ditiezhan" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '公交站' as SearchType, icon: <Icon type="icon-gongjiaozhan" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '火车高铁' as SearchType, icon: <Icon type="icon-huoche" />, color: '#20c997', bgColor: '#e6fcf5' },
 ]
 
 const radiusOptions = [

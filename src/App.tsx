@@ -202,12 +202,23 @@ function App() {
         onSelectPOI={handleSelectPOI}
       />
 
-      {/* 顶部城市选择器 */}
+      {/* 顶部栏 - 城市选择器和搜索范围 */}
       <div className="top-bar">
         <CitySelector
           currentCity={currentCity}
           onCityChange={handleCityChange}
         />
+        {midPoint && (
+          <div className="midpoint-card">
+            <div className="midpoint-icon">🎯</div>
+            <div className="midpoint-info">
+              <div className="midpoint-label">搜索范围</div>
+              <div className="midpoint-coords">
+                {searchRadius < 1000 ? `${searchRadius}m` : `${searchRadius / 1000}km`}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 左侧悬浮面板 - 地点添加 */}
@@ -266,21 +277,12 @@ function App() {
             <POIDetailCard
               detail={poiDetail}
               isLoading={isLoadingDetail}
+              onClose={() => {
+                setSelectedPOI(null)
+                setPoiDetail(null)
+              }}
             />
           )}
-        </div>
-      )}
-
-      {/* 范围信息卡片 */}
-      {midPoint && (
-        <div className="midpoint-card">
-          <div className="midpoint-icon">🎯</div>
-          <div className="midpoint-info">
-            <div className="midpoint-label">搜索范围</div>
-            <div className="midpoint-coords">
-              {searchRadius < 1000 ? `${searchRadius}m` : `${searchRadius / 1000}km`}
-            </div>
-          </div>
         </div>
       )}
 

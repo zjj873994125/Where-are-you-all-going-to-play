@@ -28,6 +28,9 @@ const getPOIIcon = (name: string) => {
   if (n.includes('ktv')) return '🎤'
   if (n.includes('公园')) return '🌳'
   if (n.includes('医院')) return '🏥'
+  if (n.includes('地铁站')) return '🚇'
+  if (n.includes('公交站')) return '🚌'
+  if (n.includes('火车高铁')) return '🚄'
   return '📍'
 }
 

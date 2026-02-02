@@ -4,14 +4,23 @@ import { POIDetail } from '@/types'
 interface POIDetailCardProps {
   detail: POIDetail | null
   isLoading: boolean
+  onClose?: () => void
 }
 
-export default function POIDetailCard({ detail, isLoading }: POIDetailCardProps) {
+export default function POIDetailCard({ detail, isLoading, onClose }: POIDetailCardProps) {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0)
+
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onClose?.()
+  }
 
   if (isLoading) {
     return (
       <div className="poi-detail-card" onClick={(e) => e.stopPropagation()}>
+        {onClose && (
+          <button className="detail-card-close" onClick={handleClose}>✕</button>
+        )}
         <div className="detail-card-loading">
           <div className="loading-spinner-small"></div>
           <span>加载详情...</span>
@@ -62,6 +71,10 @@ export default function POIDetailCard({ detail, isLoading }: POIDetailCardProps)
 
   return (
     <div className="poi-detail-card" onClick={(e) => e.stopPropagation()}>
+      {/* 关闭按钮 */}
+      {onClose && (
+        <button className="detail-card-close" onClick={handleClose}>✕</button>
+      )}
       {/* 图片 */}
       {detail.photos && detail.photos.length > 0 && (
         <div className="detail-card-photos">

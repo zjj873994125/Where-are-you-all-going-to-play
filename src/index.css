@@ -437,7 +437,7 @@ body {
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  border-radius: 12px;
+  border-radius: 5px;
   color: #1f2937;
   cursor: pointer;
   transition: all 0.2s ease;

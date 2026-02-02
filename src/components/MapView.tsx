@@ -22,6 +22,9 @@ const searchTypeIconConfig: Record<string, { icon: string; color: string }> = {
   '酒吧': { icon: 'icon-jiubajiulang', color: '#fd7e14' },
   '酒店': { icon: 'icon-jiudian', color: '#20c997' },
   '医院': { icon: 'icon-yiyuan', color: '#20c997' },
+  '地铁站': { icon: 'icon-ditiezhan', color: '#20c997' },
+  '公交站': { icon: 'icon-gongjiaozhan', color: '#20c997' },
+  '火车高铁': { icon: 'icon-huoche', color: '#20c997' },
   'custom': { icon: 'icon-sousuo', color: '#667eea' },
 }
 
@@ -173,13 +176,28 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     const map = mapInstanceRef.current
 
     points.forEach((point, index) => {
+      const letter = String.fromCharCode(65 + index)
+      const markerContent = `
+        <div style="
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          border: 2px solid white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 14px;
+          font-weight: 700;
+          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        ">${letter}</div>
+      `
       const marker = new window.AMap.Marker({
         position: [point.lng, point.lat],
         title: point.name,
-        label: {
-          content: `<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);">${String.fromCharCode(65 + index)}</div>`,
-          direction: 'top',
-        },
+        content: markerContent,
+        offset: new window.AMap.Pixel(-16, -16),
       })
       marker.setMap(map)
       markersRef.current.push(marker)
