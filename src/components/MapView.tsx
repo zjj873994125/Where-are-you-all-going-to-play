@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LocationPoint, MidPoint, POI, City, SearchRadius, SearchType } from '@/types'
 
 interface MapViewProps {
@@ -12,6 +12,9 @@ interface MapViewProps {
   searchType?: SearchType | null
   onSelectPOI?: (poi: POI) => void
   focusPoint?: LocationPoint | null
+  isSatellite?: boolean
+  isRanging?: boolean
+  onRangingEnd?: () => void
 }
 
 // 搜索类型对应的图标和颜色配置
@@ -77,7 +80,7 @@ function getCityCenter(city: City | null | undefined): [number, number] {
   return cityCenterMap['北京']
 }
 
-export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint }: MapViewProps) {
+export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint, isSatellite, isRanging, onRangingEnd }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -86,6 +89,18 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
   const selectedMarkerRef = useRef<any>(null)
   const circleRef = useRef<any>(null)
   const initializedCityRef = useRef<string | null>(null)
+  const rangingToolRef = useRef<any>(null)
+  const satelliteLayerRef = useRef<any>(null)
+  const isRangingRef = useRef<boolean>(false)
+
+  // 测距提示框状态
+  const [rangingTip, setRangingTip] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    distance: 0,
+    hasStartPoint: false,
+  })
 
   // 初始化或更新地图
   useEffect(() => {
@@ -107,7 +122,9 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
         })
 
         map.on('click', (e: any) => {
-          onMapClick(e.lnglat.lng, e.lnglat.lat)
+          if (!isRangingRef.current) {
+            onMapClick(e.lnglat.lng, e.lnglat.lat)
+          }
         })
 
         mapInstanceRef.current = map
@@ -140,6 +157,98 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     if (!mapInstanceRef.current || !focusPoint) return
     mapInstanceRef.current.setCenter([focusPoint.lng, focusPoint.lat])
   }, [focusPoint])
+
+  // 切换卫星地图
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    const map = mapInstanceRef.current
+
+    if (isSatellite) {
+      if (!satelliteLayerRef.current) {
+        satelliteLayerRef.current = new window.AMap.TileLayer.Satellite()
+      }
+      map.add(satelliteLayerRef.current)
+    } else {
+      if (satelliteLayerRef.current) {
+        map.remove(satelliteLayerRef.current)
+      }
+    }
+  }, [isSatellite])
+
+  // 测距工具
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    const map = mapInstanceRef.current
+
+    isRangingRef.current = isRanging
+
+    // 存储测距点
+    let rangingPoints: Array<{ lng: number; lat: number }> = []
+
+    if (isRanging) {
+      if (!rangingToolRef.current && window.AMap.RangingTool) {
+        rangingToolRef.current = new window.AMap.RangingTool(map)
+
+        // 监听测距开始
+        rangingToolRef.current.on('start', () => {
+          rangingPoints = []
+          setRangingTip(prev => ({ ...prev, hasStartPoint: false, distance: 0 }))
+        })
+
+        // 监听添加节点
+        rangingToolRef.current.on('addnode', (e: any) => {
+          if (e && e.marker && e.marker._position) {
+            const pos = e.marker._position
+            rangingPoints.push({ lng: pos.lng, lat: pos.lat })
+
+            // 计算总距离
+            let totalDistance = 0
+            if (rangingPoints.length >= 2) {
+              for (let i = 1; i < rangingPoints.length; i++) {
+                const prev = rangingPoints[i - 1]
+                const curr = rangingPoints[i]
+                totalDistance += window.AMap.GeometryUtil.distance(
+                  new window.AMap.LngLat(prev.lng, prev.lat),
+                  new window.AMap.LngLat(curr.lng, curr.lat)
+                )
+              }
+            }
+
+            setRangingTip(prev => ({ ...prev, hasStartPoint: true, distance: totalDistance }))
+          }
+        })
+
+        rangingToolRef.current.on('end', () => {
+          rangingPoints = []
+          setRangingTip(prev => ({ ...prev, hasStartPoint: false, distance: 0 }))
+          onRangingEnd?.()
+        })
+      }
+      rangingToolRef.current?.turnOn()
+
+      // 使用原生 DOM 事件监听鼠标移动
+      const handleMouseMove = (e: MouseEvent) => {
+        setRangingTip(prev => ({
+          ...prev,
+          visible: true,
+          x: e.clientX + 15,
+          y: e.clientY + 15,
+        }))
+      }
+
+      // 获取地图容器 DOM 元素
+      const mapContainer = map.getContainer()
+      mapContainer.addEventListener('mousemove', handleMouseMove)
+
+      return () => {
+        mapContainer.removeEventListener('mousemove', handleMouseMove)
+        setRangingTip({ visible: false, x: 0, y: 0, distance: 0, hasStartPoint: false })
+      }
+    } else {
+      rangingToolRef.current?.turnOff()
+      setRangingTip({ visible: false, x: 0, y: 0, distance: 0, hasStartPoint: false })
+    }
+  }, [isRanging, onRangingEnd])
 
   // 绘制/更新搜索范围圆圈
   useEffect(() => {
@@ -378,9 +487,27 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
   }, [pois, selectedPOI, searchType, onSelectPOI])
 
   return (
-    <div
-      ref={mapRef}
-      className="fullscreen-map"
-    />
+    <>
+      <div
+        ref={mapRef}
+        className="fullscreen-map"
+      />
+      {/* 测距提示框 */}
+      {rangingTip.visible && (
+        <div
+          className="ranging-tooltip"
+          style={{
+            left: rangingTip.x,
+            top: rangingTip.y,
+          }}
+        >
+          {rangingTip.hasStartPoint ? (
+            <div className="ranging-text">单击继续，双击或右键结束</div>
+          ) : (
+            <div className="ranging-text">点击放置起点</div>
+          )}
+        </div>
+      )}
+    </>
   )
 }

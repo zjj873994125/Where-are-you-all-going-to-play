@@ -131,10 +131,45 @@
   flex-direction: column;
 }
 
-.poi-panel-wrapper.expanded > *:not(.panel-header) {
+.poi-panel-wrapper.expanded > *:not(.panel-header):not(.map-toolbar) {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+}
+
+/* 地图工具栏 */
+.map-toolbar {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.toolbar-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #4b5563;
+}
+
+.toolbar-btn:hover {
+  background: #f0f0f0;
+}
+
+.toolbar-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
 }
 
 /* 中点卡片 */
@@ -623,4 +658,23 @@
     padding: 8px 10px;
     font-size: 12px;
   }
+}
+
+/* 测距提示框 */
+.ranging-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 6px 10px;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ranging-text {
+  color: #333;
+  font-size: 12px;
+  line-height: 1.4;
 }

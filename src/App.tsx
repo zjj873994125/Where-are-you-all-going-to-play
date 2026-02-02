@@ -22,6 +22,8 @@ function App() {
   const [poiDetail, setPoiDetail] = useState<POIDetail | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [focusPoint, setFocusPoint] = useState<LocationPoint | null>(null)
+  const [isSatellite, setIsSatellite] = useState(false)
+  const [isRanging, setIsRanging] = useState(false)
 
   // 卡片收起/展开状态（移动端默认收起）
   const isMobile = window.innerWidth <= 768
@@ -202,6 +204,9 @@ function App() {
         searchType={activeSearchType}
         onSelectPOI={handleSelectPOI}
         focusPoint={focusPoint}
+        isSatellite={isSatellite}
+        isRanging={isRanging}
+        onRangingEnd={() => setIsRanging(false)}
       />
 
       {/* 顶部栏 - 城市选择器和搜索范围 */}
@@ -251,7 +256,25 @@ function App() {
           )}
         </div>
       </div>
-
+      {/* 地图工具栏 */}
+      <div className="map-toolbar">
+        <button
+          className={`toolbar-btn ${isSatellite ? 'active' : ''}`}
+          onClick={(e) => { e.stopPropagation(); setIsSatellite(!isSatellite) }}
+          title="卫星地图"
+        >
+          🛰️ 卫星
+        </button>
+        {!isMobile && (
+          <button
+            className={`toolbar-btn ${isRanging ? 'active' : ''}`}
+            onClick={(e) => { e.stopPropagation(); setIsRanging(!isRanging) }}
+            title="测距工具"
+          >
+            📏 测距
+          </button>
+        )}
+      </div>
       {/* 右侧悬浮面板 - 附近场所 */}
       {pois.length > 0 && (
         <div className="floating-panels-right">
@@ -267,11 +290,13 @@ function App() {
               <span className="toggle-icon">{panelStates.poi ? '▼' : '▲'}</span>
             </div>
             {panelStates.poi && (
-              <POIList
-                pois={pois}
-                selectedPOI={selectedPOI}
-                onSelectPOI={handleSelectPOI}
-              />
+              <>
+                <POIList
+                  pois={pois}
+                  selectedPOI={selectedPOI}
+                  onSelectPOI={handleSelectPOI}
+                />
+              </>
             )}
           </div>
 
