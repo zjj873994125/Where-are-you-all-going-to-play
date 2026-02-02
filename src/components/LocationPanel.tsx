@@ -15,13 +15,9 @@ import {
 import {
   SearchOutlined,
   DeleteOutlined,
-  EnvironmentOutlined,
-  CoffeeOutlined,
-  ShoppingOutlined,
-  JavaOutlined,
-  ThunderboltOutlined
 } from '@ant-design/icons'
-import { LocationPoint, SearchType, SearchRadius } from '@/types'
+import Icon from './Icon'
+import { LocationPoint, SearchType, SearchRadius, City } from '@/types'
 import { searchByKeyword } from '@/utils/amap'
 
 const { Text } = Typography
@@ -34,14 +30,20 @@ interface LocationPanelProps {
   onSearch: (type: SearchType, keyword?: string, radius?: SearchRadius) => void
   isSearching: boolean
   searchRadius?: SearchRadius
-  onSearchRadiusChange?: (radius: SearchRadius) => void
+  onSearchRadiusChange?: (radius: SearchRadius)=> void
+  currentCity?: City | null
 }
 
+// 注意：请根据你的阿里图标库中的实际图标类名替换下面的 icon-xxx
+// 图标类名格式通常是 icon-xxx，你可以在阿里图标库的项目中查看具体的类名
 const searchTypeConfig = [
-  { type: '餐厅' as SearchType, icon: <EnvironmentOutlined />, color: '#ff6b6b', bgColor: '#fff0f0' },
-  { type: '咖啡厅' as SearchType, icon: <CoffeeOutlined />, color: '#845ef7', bgColor: '#f3f0ff' },
-  { type: '商场' as SearchType, icon: <ShoppingOutlined />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '酒吧' as SearchType, icon: <JavaOutlined />, color: '#fd7e14', bgColor: '#fff4e6' },
+  { type: '餐厅' as SearchType, icon: <Icon type="icon-canyin" />, color: '#ff6b6b', bgColor: '#fff0f0' },
+  { type: '咖啡厅' as SearchType, icon: <Icon type="icon-kafeiting" />, color: '#845ef7', bgColor: '#f3f0ff' },
+  { type: '奶茶店' as SearchType, icon: <Icon type="icon-zhenzhunaicha" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '商场' as SearchType, icon: <Icon type="icon-shangchang1" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '酒吧' as SearchType, icon: <Icon type="icon-jiubajiulang" />, color: '#fd7e14', bgColor: '#fff4e6' },
+  { type: '酒店' as SearchType, icon: <Icon type="icon-jiudian" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '医院' as SearchType, icon: <Icon type="icon-yiyuan" />, color: '#20c997', bgColor: '#e6fcf5' },
 ]
 
 const radiusOptions = [
@@ -65,6 +67,7 @@ export default function LocationPanel({
   isSearching,
   searchRadius = 1000,
   onSearchRadiusChange,
+  currentCity,
 }: LocationPanelProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -84,7 +87,7 @@ export default function LocationPanel({
 
   const handleSearch = async (value: string) => {
     if (!value.trim()) return
-    const results = await searchByKeyword(value)
+    const results = await searchByKeyword(value, currentCity?.name)
     setSearchResults(results)
   }
 
@@ -215,7 +218,7 @@ export default function LocationPanel({
           <div className="panel-section">
             <div className="section-header">
               <Space>
-                <ThunderboltOutlined style={{ color: '#667eea' }} />
+                <Icon type="icon-thunderbolt" style={{ color: '#667eea' }} />
                 <Text strong>搜索范围</Text>
               </Space>
               <Tag color="red">{searchRadius < 1000 ? `${searchRadius}m` : `${searchRadius / 1000}km`}</Tag>
@@ -246,7 +249,7 @@ export default function LocationPanel({
       <div className="panel-section">
         <div className="section-header">
           <Space>
-            <ThunderboltOutlined style={{ color: '#667eea' }} />
+            <Icon type="icon-thunderbolt" style={{ color: '#667eea' }} />
             <Text strong>附近搜索</Text>
           </Space>
           {activeSearchType && (

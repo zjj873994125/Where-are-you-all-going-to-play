@@ -4,9 +4,10 @@ import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
-import { LocationPoint, MidPoint, POI, SearchType, SearchRadius, City } from './types'
+import POIDetailCard from './components/POIDetailCard'
+import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City } from './types'
 import { calculateMidPoint } from './utils/mapCalc'
-import { searchPOI, getCurrentCity } from './utils/amap'
+import { searchPOI, getCurrentCity, getPOIDetail } from './utils/amap'
 import './App.css'
 
 function App() {
@@ -17,6 +18,9 @@ function App() {
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [searchRadius, setSearchRadius] = useState<SearchRadius>(1000)
+  const [activeSearchType, setActiveSearchType] = useState<SearchType | null>(null)
+  const [poiDetail, setPoiDetail] = useState<POIDetail | null>(null)
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
 
   // 卡片收起/展开状态（移动端默认收起）
   const isMobile = window.innerWidth <= 768
@@ -93,6 +97,8 @@ function App() {
     setMidPoint(null)
     setPois([])
     setSelectedPOI(null)
+    setActiveSearchType(null)
+    setPoiDetail(null)
     message.success(`已切换到：${city.name}`)
   }, [])
 
@@ -122,6 +128,8 @@ function App() {
     setMidPoint(null)
     setPois([])
     setSelectedPOI(null)
+    setActiveSearchType(null)
+    setPoiDetail(null)
   }, [])
 
   const handleMapClick = useCallback((lng: number, lat: number) => {
@@ -138,11 +146,13 @@ function App() {
     if (!midPoint) return
 
     setIsSearching(true)
+    setActiveSearchType(type)
     try {
       const results = await searchPOI(keyword || type, midPoint.lng, midPoint.lat, radius)
       setPois(results)
       if (results.length > 0) {
-        setSelectedPOI(results[0])
+        setSelectedPOI(null)
+        setPoiDetail(null)
         // 自动展开POI面板
         setPanelStates(prev => ({ ...prev, poi: true }))
       } else {
@@ -156,8 +166,21 @@ function App() {
     }
   }, [midPoint])
 
-  const handleSelectPOI = useCallback((poi: POI) => {
+  const handleSelectPOI = useCallback(async (poi: POI) => {
     setSelectedPOI(poi)
+    setIsLoadingDetail(true)
+    setPoiDetail(null)
+    try {
+      const detail = await getPOIDetail(poi.id)
+      if (detail) {
+        detail.distance = poi.distance
+        setPoiDetail(detail)
+      }
+    } catch (error) {
+      console.error('获取POI详情失败:', error)
+    } finally {
+      setIsLoadingDetail(false)
+    }
   }, [])
 
   const togglePanel = useCallback((panel: 'location' | 'poi') => {
@@ -174,6 +197,9 @@ function App() {
         selectedPOI={selectedPOI}
         currentCity={currentCity}
         searchRadius={searchRadius}
+        pois={pois}
+        searchType={activeSearchType}
+        onSelectPOI={handleSelectPOI}
       />
 
       {/* 顶部城市选择器 */}
@@ -206,6 +232,7 @@ function App() {
               isSearching={isSearching}
               searchRadius={searchRadius}
               onSearchRadiusChange={setSearchRadius}
+              currentCity={currentCity}
             />
           )}
         </div>
@@ -233,6 +260,14 @@ function App() {
               />
             )}
           </div>
+
+          {/* POI 详情卡片 */}
+          {(selectedPOI && (isLoadingDetail || poiDetail)) && (
+            <POIDetailCard
+              detail={poiDetail}
+              isLoading={isLoadingDetail}
+            />
+          )}
         </div>
       )}
 

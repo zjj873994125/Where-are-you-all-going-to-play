@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/cityselector.tsx","./src/components/icon.tsx","./src/components/locationpanel.tsx","./src/components/mapview.tsx","./src/components/poidetailcard.tsx","./src/components/poilist.tsx","./src/types/amap.d.ts","./src/types/index.ts","./src/utils/amap.ts","./src/utils/mapcalc.ts"],"version":"5.7.3"}

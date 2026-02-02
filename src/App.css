@@ -111,7 +111,7 @@
 
 /* 地点面板 */
 .location-panel-wrapper {
-  height: 80%;
+  /* height: 80%; */
   display: flex;
   flex-direction: column;
 }
@@ -365,5 +365,225 @@
 
   .locations-list {
     max-height: calc(60vh - 200px) !important;
+  }
+}
+
+/* POI 详情卡片 */
+.poi-detail-card {
+  margin-top: 12px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  animation: cardFadeIn 0.2s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-card-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 图片 */
+.detail-card-photos {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  background: #f3f4f6;
+}
+
+.detail-card-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-nav-small {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: #374151;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-prev-small { left: 8px; }
+.photo-next-small { right: 8px; }
+
+.photo-count {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* 内容 */
+.detail-card-content {
+  padding: 14px;
+}
+
+.detail-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.detail-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+
+.detail-card-rating {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.detail-card-type {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.detail-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.detail-info-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detail-info-row.clickable {
+  cursor: pointer;
+}
+
+.detail-info-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.detail-info-text {
+  color: #4b5563;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.detail-info-link {
+  color: #2563eb;
+}
+
+.detail-info-row.clickable:hover .detail-info-link {
+  text-decoration: underline;
+}
+
+/* 操作按钮 */
+.detail-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.detail-action-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.detail-call-btn {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.detail-call-btn:hover {
+  background: #c7d2fe;
+}
+
+.detail-nav-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.detail-nav-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* 移动端详情卡片适配 */
+@media (max-width: 768px) {
+  .poi-detail-card {
+    margin-top: 10px;
+  }
+
+  .detail-card-photos {
+    height: 120px;
+  }
+
+  .detail-card-content {
+    padding: 12px;
+  }
+
+  .detail-card-name {
+    font-size: 14px;
+  }
+
+  .detail-action-btn {
+    padding: 8px 10px;
+    font-size: 12px;
   }
 }

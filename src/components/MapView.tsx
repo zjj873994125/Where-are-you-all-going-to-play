@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { LocationPoint, MidPoint, POI, City, SearchRadius } from '@/types'
+import { LocationPoint, MidPoint, POI, City, SearchRadius, SearchType } from '@/types'
 
 interface MapViewProps {
   points: LocationPoint[]
@@ -8,6 +8,21 @@ interface MapViewProps {
   selectedPOI: POI | null
   currentCity?: City | null
   searchRadius?: SearchRadius
+  pois?: POI[]
+  searchType?: SearchType | null
+  onSelectPOI?: (poi: POI) => void
+}
+
+// 搜索类型对应的图标和颜色配置
+const searchTypeIconConfig: Record<string, { icon: string; color: string }> = {
+  '餐厅': { icon: 'icon-canyin', color: '#ff6b6b' },
+  '咖啡厅': { icon: 'icon-kafeiting', color: '#845ef7' },
+  '奶茶店': { icon: 'icon-zhenzhunaicha', color: '#20c997' },
+  '商场': { icon: 'icon-shangchang1', color: '#20c997' },
+  '酒吧': { icon: 'icon-jiubajiulang', color: '#fd7e14' },
+  '酒店': { icon: 'icon-jiudian', color: '#20c997' },
+  '医院': { icon: 'icon-yiyuan', color: '#20c997' },
+  'custom': { icon: 'icon-sousuo', color: '#667eea' },
 }
 
 // 常见城市中心点坐标
@@ -58,10 +73,11 @@ function getCityCenter(city: City | null | undefined): [number, number] {
   return cityCenterMap['北京']
 }
 
-export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000 }: MapViewProps) {
+export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const poiMarkersRef = useRef<any[]>([])
   const circleRef = useRef<any>(null)
   const initializedCityRef = useRef<string | null>(null)
 
@@ -147,7 +163,7 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     circleRef.current = circle
   }, [midPoint, searchRadius])
 
-  // 更新地图标记
+  // 更新地图标记（用户添加的地点）
   useEffect(() => {
     if (!mapInstanceRef.current) return
 
@@ -169,40 +185,66 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
       markersRef.current.push(marker)
     })
 
-    // 中点不再显示标记，只显示范围圆圈
-    // if (midPoint) {
-    //   ...
-    // }
-
-    if (selectedPOI) {
-      const poiMarker = new window.AMap.Marker({
-        position: [selectedPOI.lng, selectedPOI.lat],
-        icon: new window.AMap.Icon({
-          image: 'data:image/svg+xml;base64,' + btoa(`
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
-              <path d="M20 4 L8 18 C6 20 5 23 5 26 C5 32 10 36 20 36 C30 36 35 32 35 26 C35 23 34 20 32 18 L20 4Z" fill="#10b981"/>
-              <circle cx="20" cy="22" r="5" fill="white"/>
-            </svg>
-          `),
-          size: new window.AMap.Size(36, 36),
-          imageSize: new window.AMap.Size(36, 36),
-        }),
-        title: selectedPOI.name,
-        zIndex: 90,
-      })
-      poiMarker.setMap(map)
-      markersRef.current.push(poiMarker)
-    }
-
     const allPositions = [
       ...points.map((p) => [p.lng, p.lat]),
-      midPoint ? [midPoint.lng, midPoint.lat] : [],
-    ].filter(Boolean)
-
-    if (allPositions.length > 0) {
-      map.setFitView()
+      ...(midPoint ? [[midPoint.lng, midPoint.lat]] : []),
+    ]
+    // 只在有多个点时自动调整视野，且限制最大缩放级别
+    if (allPositions.length > 1) {
+      map.setFitView(null, false, [50, 50, 50, 50], 15) // maxZoom 限制为 15
     }
-  }, [points, midPoint, selectedPOI])
+  }, [points, midPoint])
+
+  // 更新 POI 标记
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+
+    // 清除旧的 POI 标记
+    poiMarkersRef.current.forEach((marker) => marker?.setMap(null))
+    poiMarkersRef.current = []
+
+    const map = mapInstanceRef.current
+    const iconConfig = searchType ? searchTypeIconConfig[searchType] : searchTypeIconConfig['custom']
+
+    pois.forEach((poi) => {
+      const isSelected = selectedPOI?.id === poi.id
+      const markerContent = `
+        <div style="
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: ${isSelected ? '32px' : '24px'};
+          height: ${isSelected ? '32px' : '24px'};
+          background: ${isSelected ? iconConfig.color : 'white'};
+          border: 2px solid ${iconConfig.color};
+          border-radius: 50%;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+          transition: all 0.2s;
+        ">
+          <i class="iconfont ${iconConfig.icon}" style="
+            font-size: ${isSelected ? '16px' : '12px'};
+            color: ${isSelected ? 'white' : iconConfig.color};
+          "></i>
+        </div>
+      `
+
+      const marker = new window.AMap.Marker({
+        position: [poi.lng, poi.lat],
+        content: markerContent,
+        offset: new window.AMap.Pixel(isSelected ? -16 : -12, isSelected ? -16 : -12),
+        title: poi.name,
+        zIndex: isSelected ? 100 : 80,
+      })
+
+      // 添加点击事件
+      marker.on('click', () => {
+        onSelectPOI?.(poi)
+      })
+
+      marker.setMap(map)
+      poiMarkersRef.current.push(marker)
+    })
+  }, [pois, selectedPOI, searchType, onSelectPOI])
 
   return (
     <div

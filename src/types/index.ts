@@ -19,6 +19,16 @@ export interface POI {
   type?: string
 }
 
+export interface POIDetail extends POI {
+  tel?: string              // 电话
+  photos?: { url: string }[] // 图片数组
+  openingHours?: string     // 营业时间
+  website?: string          // 网站
+  cityname?: string         // 城市
+  adname?: string           // 区域
+  businessArea?: string     // 商圈
+}
+
 export interface City {
   name: string
   adcode: string
@@ -28,7 +38,7 @@ export interface City {
   }
 }
 
-export type SearchType = '餐厅' | '咖啡厅' | '商场' | '酒吧' | 'custom'
+export type SearchType = '餐厅' | '咖啡厅' | '奶茶店' | '商场' | '酒吧' | '酒店' | '医院' | 'custom'
 
 export type SearchRadius = 500 | 1000 | 2000 | 3000
 

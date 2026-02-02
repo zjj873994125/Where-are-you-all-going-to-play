@@ -1,4 +1,4 @@
-import { POI, City } from '@/types'
+import { POI, POIDetail, City } from '@/types'
 
 declare global {
   interface Window {
@@ -72,7 +72,7 @@ export async function searchPOI(
   })
 }
 
-export async function searchByKeyword(keyword: string): Promise<any[]> {
+export async function searchByKeyword(keyword: string, city?: string): Promise<any[]> {
   if (!window.AMap) {
     console.error('AMap not loaded')
     return []
@@ -89,6 +89,8 @@ export async function searchByKeyword(keyword: string): Promise<any[]> {
     const placeSearch = new window.AMap.PlaceSearch({
       pageSize: 10,
       pageIndex: 1,
+      city: city || '全国',
+      citylimit: !!city, // 如果指定了城市，则限制在该城市范围内搜索
     })
 
     placeSearch.search(keyword, (status: string, result: any) => {
@@ -271,6 +273,55 @@ export async function getCityByName(cityName: string): Promise<City | null> {
           }
         })
       } else {
+        resolve(null)
+      }
+    })
+  })
+}
+
+/**
+ * 获取 POI 详情
+ */
+export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
+  if (!window.AMap || !poiId) {
+    return null
+  }
+
+  try {
+    await loadPlugin('PlaceSearch')
+  } catch (e) {
+    console.error('PlaceSearch plugin failed to load:', e)
+    return null
+  }
+
+  return new Promise((resolve) => {
+    const placeSearch = new window.AMap.PlaceSearch({
+      extensions: 'all' // 返回详细信息
+    })
+
+    placeSearch.getDetails(poiId, (status: string, result: any) => {
+      if (status === 'complete' && result.poiList?.pois?.length > 0) {
+        const poi = result.poiList.pois[0]
+        const detail: POIDetail = {
+          id: poi.id,
+          name: poi.name,
+          address: poi.address || '',
+          lng: poi.location.lng,
+          lat: poi.location.lat,
+          distance: poi.distance,
+          type: poi.type,
+          tel: poi.tel || undefined,
+          photos: poi.photos?.map((p: any) => ({ url: p.url })) || [],
+          rating: poi.biz_ext?.rating ? parseFloat(poi.biz_ext.rating) : undefined,
+          openingHours: poi.biz_ext?.opentime || undefined,
+          website: poi.website || undefined,
+          cityname: poi.cityname || undefined,
+          adname: poi.adname || undefined,
+          businessArea: poi.business_area || undefined
+        }
+        resolve(detail)
+      } else {
+        console.log('getPOIDetail result:', status, result)
         resolve(null)
       }
     })
