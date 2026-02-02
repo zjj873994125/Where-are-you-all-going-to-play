@@ -135,7 +135,7 @@ function App() {
   const handleMapClick = useCallback((lng: number, lat: number) => {
     const point: LocationPoint = {
       id: Date.now().toString(),
-      name: `位置 ${points.length + 1}`,
+      name: `自定义点位`,
       lng,
       lat,
     }

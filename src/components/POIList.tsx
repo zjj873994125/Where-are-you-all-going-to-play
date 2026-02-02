@@ -30,7 +30,7 @@ const getPOIIcon = (name: string) => {
   if (n.includes('医院')) return '🏥'
   if (n.includes('地铁站')) return '🚇'
   if (n.includes('公交站')) return '🚌'
-  if (n.includes('火车高铁')) return '🚄'
+  if (n.includes('火车站')) return '🚄'
   return '📍'
 }
 

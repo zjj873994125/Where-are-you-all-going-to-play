@@ -15,17 +15,17 @@ interface MapViewProps {
 
 // 搜索类型对应的图标和颜色配置
 const searchTypeIconConfig: Record<string, { icon: string; color: string }> = {
-  '餐厅': { icon: 'icon-canyin', color: '#ff6b6b' },
-  '咖啡厅': { icon: 'icon-kafeiting', color: '#845ef7' },
-  '奶茶店': { icon: 'icon-zhenzhunaicha', color: '#20c997' },
-  '商场': { icon: 'icon-shangchang1', color: '#20c997' },
-  '酒吧': { icon: 'icon-jiubajiulang', color: '#fd7e14' },
-  '酒店': { icon: 'icon-jiudian', color: '#20c997' },
-  '医院': { icon: 'icon-yiyuan', color: '#20c997' },
-  '地铁站': { icon: 'icon-ditiezhan', color: '#20c997' },
-  '公交站': { icon: 'icon-gongjiaozhan', color: '#20c997' },
-  '火车高铁': { icon: 'icon-huoche', color: '#20c997' },
-  'custom': { icon: 'icon-sousuo', color: '#667eea' },
+  '餐厅': { icon: 'icon-canyin', color: 'rgb(240, 152, 56)' },
+  '咖啡厅': { icon: 'icon-kafeiting', color: 'rgb(240, 152, 56)' },
+  '奶茶店': { icon: 'icon-zhenzhunaicha', color: 'rgb(240, 152, 56)' },
+  '商场': { icon: 'icon-shangchang1', color: 'rgb(195, 112, 231)' },
+  '酒吧': { icon: 'icon-jiubajiulang', color: 'rgb(231, 102, 152)' },
+  '酒店': { icon: 'icon-jiudian', color: 'rgb(159, 138, 229)' },
+  '医院': { icon: 'icon-yiyuan', color: 'rgb(239, 123, 132)' },
+  '地铁站': { icon: 'icon-ditiezhan', color: 'rgb(216, 71, 86)' },
+  '公交站': { icon: 'icon-gongjiaoche', color: 'rgb(102, 198, 76)' },
+  '火车站': { icon: 'icon-a-zu6661', color: 'rgb(88, 140, 247)' },
+  'custom': { icon: 'icon-sousuo', color: 'rgb(134, 181, 255)' },
 }
 
 // 常见城市中心点坐标
@@ -240,7 +240,7 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
           transition: all 0.2s;
         ">
           <i class="iconfont ${iconConfig.icon}" style="
-            font-size: ${isSelected ? '16px' : '12px'};
+            font-size: ${isSelected ? '25px' : '18px'};
             color: ${isSelected ? 'white' : iconConfig.color};
           "></i>
         </div>

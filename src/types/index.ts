@@ -38,7 +38,7 @@ export interface City {
   }
 }
 
-export type SearchType = '餐厅' | '咖啡厅' | '奶茶店' | '商场' | '酒吧' | '酒店' | '医院' | '地铁站' | '公交站' | '火车高铁' | 'custom'
+export type SearchType = '餐厅' | '咖啡厅' | '奶茶店' | '商场' | '酒吧' | '酒店' | '医院' | '地铁站' | '公交站' | '火车站' | 'custom'
 
 export type SearchRadius = 500 | 1000 | 2000 | 3000
 

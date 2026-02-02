@@ -37,16 +37,16 @@ interface LocationPanelProps {
 // 注意：请根据你的阿里图标库中的实际图标类名替换下面的 icon-xxx
 // 图标类名格式通常是 icon-xxx，你可以在阿里图标库的项目中查看具体的类名
 const searchTypeConfig = [
-  { type: '餐厅' as SearchType, icon: <Icon type="icon-canyin" />, color: '#ff6b6b', bgColor: '#fff0f0' },
-  { type: '咖啡厅' as SearchType, icon: <Icon type="icon-kafeiting" />, color: '#845ef7', bgColor: '#f3f0ff' },
-  { type: '奶茶店' as SearchType, icon: <Icon type="icon-zhenzhunaicha" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '商场' as SearchType, icon: <Icon type="icon-shangchang1" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '酒吧' as SearchType, icon: <Icon type="icon-jiubajiulang" />, color: '#fd7e14', bgColor: '#fff4e6' },
-  { type: '酒店' as SearchType, icon: <Icon type="icon-jiudian" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '医院' as SearchType, icon: <Icon type="icon-yiyuan" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '地铁站' as SearchType, icon: <Icon type="icon-ditiezhan" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '公交站' as SearchType, icon: <Icon type="icon-gongjiaozhan" />, color: '#20c997', bgColor: '#e6fcf5' },
-  { type: '火车高铁' as SearchType, icon: <Icon type="icon-huoche" />, color: '#20c997', bgColor: '#e6fcf5' },
+  { type: '餐厅' as SearchType, icon: <Icon type="icon-canyin" />, color: 'rgb(240, 152, 56)', bgColor: '#FFF7E6' },        // 浅黄橙
+  { type: '咖啡厅' as SearchType, icon: <Icon type="icon-kafeiting" />, color: 'rgb(240, 152, 56)', bgColor: '#FFF7EF' },      // 更浅的咖啡棕
+  { type: '奶茶店' as SearchType, icon: <Icon type="icon-zhenzhunaicha" />, color: 'rgb(240, 152, 56)', bgColor: '#FFF9E6' }, // 奶茶浅米
+  { type: '商场' as SearchType, icon: <Icon type="icon-shangchang1" />, color: 'rgb(195, 112, 231)', bgColor: '#F6EBFB' },    // 浅紫
+  { type: '酒吧' as SearchType, icon: <Icon type="icon-jiubajiulang" />, color: 'rgb(231, 102, 152)', bgColor: '#FFF0F5' },   // 浅粉
+  { type: '酒店' as SearchType, icon: <Icon type="icon-jiudian" />, color: 'rgb(159, 138, 229)', bgColor: '#F1F0FB' },        // 浅蓝紫
+  { type: '医院' as SearchType, icon: <Icon type="icon-yiyuan" />, color: 'rgb(239, 123, 132)', bgColor: '#FFEFF3' },         // 浅玫红
+  { type: '地铁站' as SearchType, icon: <Icon type="icon-ditiezhan" />, color: 'rgb(216, 71, 86)', bgColor: '#FFF0F0' },      // 地铁浅红
+  { type: '公交站' as SearchType, icon: <Icon type="icon-gongjiaoche" />, color: 'rgb(102, 198, 76)', bgColor: '#F0FFF4' },   // 浅绿
+  { type: '火车站' as SearchType, icon: <Icon type="icon-a-zu6661" />, color: 'rgb(88, 140, 247)', bgColor: '#F0F4FF' },      // 浅蓝
 ]
 
 const radiusOptions = [
@@ -278,6 +278,7 @@ export default function LocationPanel({
                   loading={isSearching && activeSearchType === type}
                   onClick={() => handlePOISearch(type)}
                   className="quick-search-btn"
+                  size="small"
                   style={{
                     borderColor: color,
                     color: activeSearchType === type ? 'white' : color,
