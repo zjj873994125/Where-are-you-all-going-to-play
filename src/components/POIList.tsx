@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { List, Typography } from 'antd'
+import { List, Typography, Skeleton, Empty } from 'antd'
 import { CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
 import { POI, NavMode } from '@/types'
 import { generateAmapNavUrl } from '@/utils/mapCalc'
@@ -10,6 +10,7 @@ interface POIListProps {
   pois: POI[]
   selectedPOI: POI | null
   onSelectPOI: (poi: POI) => void
+  loading?: boolean
 }
 
 const navModeConfig = [
@@ -40,12 +41,70 @@ const formatDistance = (distance?: number) => {
   return `${(distance / 1000).toFixed(1)}km`
 }
 
-export default function POIList({ pois, selectedPOI, onSelectPOI }: POIListProps) {
+// POI 列表骨架屏组件
+function POIListSkeleton() {
+  return (
+    <div className="poi-list-skeleton">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className="poi-skeleton-item">
+          <Skeleton.Avatar active size={40} shape="circle" />
+          <div className="poi-skeleton-content">
+            <Skeleton.Input active size="small" style={{ width: 120, marginBottom: 8 }} />
+            <Skeleton.Input active size="small" style={{ width: 180 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export default function POIList({ pois, selectedPOI, onSelectPOI, loading = false }: POIListProps) {
   const [navMode, setNavMode] = useState<NavMode>('drive')
 
   const handleNavigate = (poi: POI) => {
     const url = generateAmapNavUrl(poi.lng, poi.lat, poi.name, navMode)
     window.open(url, '_blank')
+  }
+
+  // 加载状态：显示骨架屏
+  if (loading) {
+    return (
+      <div className="poi-list-content-wrapper">
+        <div className="nav-mode-section">
+          <div className="nav-mode-buttons">
+            {navModeConfig.map(({ mode, icon, label }) => (
+              <button
+                key={mode}
+                title={label}
+                className={`nav-mode-btn ${navMode === mode ? 'active' : ''}`}
+                disabled
+              >
+                {icon}
+              </button>
+            ))}
+          </div>
+        </div>
+        <POIListSkeleton />
+      </div>
+    )
+  }
+
+  // 空状态：无搜索结果
+  if (pois.length === 0) {
+    return (
+      <div className="poi-list-content-wrapper">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <span style={{ color: '#999' }}>
+              暂无搜索结果<br />
+              <Text type="secondary" style={{ fontSize: 12 }}>试试扩大搜索范围或更换关键词</Text>
+            </span>
+          }
+          style={{ padding: '40px 0' }}
+        />
+      </div>
+    )
   }
 
   return (

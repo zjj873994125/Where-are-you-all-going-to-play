@@ -678,3 +678,219 @@
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* POI 列表骨架屏 */
+.poi-list-skeleton {
+  padding: 12px;
+}
+
+.poi-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.poi-skeleton-item:last-child {
+  border-bottom: none;
+}
+
+.poi-skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 地点列表项动画 */
+.location-item {
+  transition: all 0.25s ease;
+}
+
+.location-item-enter {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.location-item-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.location-item-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.location-item-exit-active {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+/* 拖拽排序样式 */
+.location-item-dragging {
+  opacity: 0.9;
+  background: #f0f4ff !important;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  z-index: 999;
+}
+
+.location-item-drag-handle {
+  cursor: grab;
+  padding: 4px;
+  color: #9ca3af;
+  touch-action: none;
+}
+
+.location-item-drag-handle:active {
+  cursor: grabbing;
+}
+
+.location-item-drag-handle:hover {
+  color: #667eea;
+}
+
+/* 可拖拽地点列表项 */
+.locations-list .location-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  background: white;
+  gap: 8px;
+}
+
+.locations-list .location-item:last-child {
+  border-bottom: none;
+}
+
+.locations-list .location-item:hover {
+  background: #fafafa;
+}
+
+.location-item-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.location-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-item-address {
+  font-size: 12px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+/* 收藏列表样式 */
+.favorites-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.favorite-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 4px;
+}
+
+.favorite-item:last-child {
+  border-bottom: none;
+}
+
+.favorite-item:hover {
+  background: #fafafa;
+}
+
+.favorite-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.favorite-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.favorite-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-item-address {
+  font-size: 11px;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+/* 搜索提示行 */
+.search-hint-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.favorites-link {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #faad14;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.favorites-link:hover {
+  color: #d48806;
+}
+
+/* 收藏弹窗列表 */
+.favorites-modal-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.favorites-modal-list .favorite-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.favorites-modal-list .favorite-item:last-child {
+  border-bottom: none;
+}
+
+.favorites-modal-list .favorite-item-name {
+  font-size: 14px;
+}
+
+.favorites-modal-list .favorite-item-address {
+  font-size: 12px;
+}

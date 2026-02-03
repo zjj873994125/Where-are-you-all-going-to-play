@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   Input,
   Button,
-  List,
   Space,
   Typography,
   Tag,
@@ -11,14 +10,37 @@ import {
   Empty,
   AutoComplete,
   Badge,
+  Modal,
 } from 'antd'
 import {
   SearchOutlined,
   DeleteOutlined,
+  HolderOutlined,
+  StarOutlined,
+  StarFilled,
+  PlusOutlined,
 } from '@ant-design/icons'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import Icon from './Icon'
 import { LocationPoint, SearchType, SearchRadius, City } from '@/types'
 import { searchByKeyword } from '@/utils/amap'
+import { FavoritePoint } from '@/hooks/useFavorites'
 
 const { Text } = Typography
 
@@ -27,12 +49,19 @@ interface LocationPanelProps {
   onAddPoint: (point: LocationPoint) => void
   onRemovePoint: (id: string) => void
   onClearAll: () => void
+  onReorderPoints: (points: LocationPoint[]) => void
   onSearch: (type: SearchType, keyword?: string, radius?: SearchRadius) => void
   onLocatePoint?: (point: LocationPoint) => void
   isSearching: boolean
   searchRadius?: SearchRadius
   onSearchRadiusChange?: (radius: SearchRadius)=> void
   currentCity?: City | null
+  // 收藏相关
+  favorites: FavoritePoint[]
+  onAddFavorite: (point: LocationPoint) => void
+  onRemoveFavorite: (id: string) => void
+  onAddFromFavorite: (point: LocationPoint) => void
+  isFavorite: (point: LocationPoint) => boolean
 }
 
 // 注意：请根据你的阿里图标库中的实际图标类名替换下面的 icon-xxx
@@ -62,22 +91,130 @@ const getLocationLabel = (index: number) => {
   return labels[index] || '?'
 }
 
+// 可拖拽的地点列表项组件
+interface SortableLocationItemProps {
+  point: LocationPoint
+  index: number
+  onRemove: (id: string) => void
+  onLocate?: (point: LocationPoint) => void
+  onFavorite?: (point: LocationPoint) => void
+  isFavorited?: boolean
+}
+
+function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, isFavorited }: SortableLocationItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: point.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.8 : 1,
+  }
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`location-item ${isDragging ? 'location-item-dragging' : ''}`}
+    >
+      <div
+        className="location-item-drag-handle"
+        {...attributes}
+        {...listeners}
+      >
+        <HolderOutlined />
+      </div>
+      <div
+        className="location-item-content"
+        onClick={() => onLocate?.(point)}
+        style={{ cursor: 'pointer', flex: 1 }}
+      >
+        <div className="location-badge">
+          {getLocationLabel(index)}
+        </div>
+        <div className="location-item-info">
+          <div className="location-item-name">{point.name}</div>
+          <div className="location-item-address">
+            {point.address || `${point.lng.toFixed(4)}, ${point.lat.toFixed(4)}`}
+          </div>
+        </div>
+      </div>
+      <Button
+        type="text"
+        size="small"
+        icon={isFavorited ? <StarFilled style={{ color: '#faad14' }} /> : <StarOutlined />}
+        onClick={(e) => {
+          e.stopPropagation()
+          onFavorite?.(point)
+        }}
+        title={isFavorited ? '已收藏' : '收藏'}
+      />
+      <Button
+        type="text"
+        danger
+        size="small"
+        icon={<DeleteOutlined />}
+        onClick={(e) => {
+          e.stopPropagation()
+          onRemove(point.id)
+        }}
+      />
+    </div>
+  )
+}
+
 export default function LocationPanel({
   points,
   onAddPoint,
   onRemovePoint,
   onClearAll,
+  onReorderPoints,
   onSearch,
   onLocatePoint,
   isSearching,
   searchRadius = 1000,
   onSearchRadiusChange,
   currentCity,
+  favorites,
+  onAddFavorite,
+  onRemoveFavorite,
+  onAddFromFavorite,
+  isFavorite,
 }: LocationPanelProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [customKeyword, setCustomKeyword] = useState('')
   const [activeSearchType, setActiveSearchType] = useState<SearchType | null>(null)
+  const [showFavoritesModal, setShowFavoritesModal] = useState(false)
+
+  // 拖拽传感器配置
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // 拖拽激活距离
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // 处理拖拽结束
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id) {
+      const oldIndex = points.findIndex((p) => p.id === active.id)
+      const newIndex = points.findIndex((p) => p.id === over.id)
+      const newPoints = arrayMove(points, oldIndex, newIndex)
+      onReorderPoints(newPoints)
+    }
+  }
 
   const autoCompleteOptions = searchResults.map(item => ({
     value: item.name,
@@ -152,9 +289,20 @@ export default function LocationPanel({
             onPressEnter={() => handleSearch(searchKeyword)}
           />
         </AutoComplete>
-        <Text type="secondary" className="search-hint">
-          或在地图上点击添加
-        </Text>
+        <div className="search-hint-row">
+          <Text type="secondary" className="search-hint">
+            或在地图上点击添加
+          </Text>
+          {favorites.length > 0 && (
+            <a
+              className="favorites-link"
+              onClick={() => setShowFavoritesModal(true)}
+            >
+              <StarFilled style={{ color: '#faad14', marginRight: 4 }} />
+              收藏夹 ({favorites.length})
+            </a>
+          )}
+        </div>
       </div>
 
       <Divider style={{ margin: '12px 0' }} />
@@ -184,36 +332,30 @@ export default function LocationPanel({
             description="请添加至少2个地点"
           />
         ) : (
-          <List
-            className="locations-list"
-            dataSource={points}
-            renderItem={(point, index) => (
-              <List.Item
-                className="location-item"
-                style={{ cursor: 'pointer' }}
-                onClick={() => onLocatePoint?.(point)}
-                actions={[
-                  <Button
-                    type="text"
-                    danger
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => { e.stopPropagation(); onRemovePoint(point.id) }}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={points.map((p) => p.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="locations-list">
+                {points.map((point, index) => (
+                  <SortableLocationItem
+                    key={point.id}
+                    point={point}
+                    index={index}
+                    onRemove={onRemovePoint}
+                    onLocate={onLocatePoint}
+                    onFavorite={onAddFavorite}
+                    isFavorited={isFavorite(point)}
                   />
-                ]}
-              >
-                <List.Item.Meta
-                  avatar={
-                    <div className="location-badge">
-                      {getLocationLabel(index)}
-                    </div>
-                  }
-                  title={point.name}
-                  description={point.address || `${point.lng.toFixed(4)}, ${point.lat.toFixed(4)}`}
-                />
-              </List.Item>
-            )}
-          />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 
@@ -316,6 +458,62 @@ export default function LocationPanel({
           </>
         )}
       </div>
+
+      {/* 收藏夹弹窗 */}
+      <Modal
+        title={
+          <Space>
+            <StarFilled style={{ color: '#faad14' }} />
+            <span>收藏夹</span>
+          </Space>
+        }
+        open={showFavoritesModal}
+        onCancel={() => setShowFavoritesModal(false)}
+        footer={null}
+        width={400}
+      >
+        {favorites.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="暂无收藏的地点"
+          />
+        ) : (
+          <div className="favorites-modal-list">
+            {favorites.map((fav) => (
+              <div key={fav.id} className="favorite-item">
+                <div className="favorite-item-content">
+                  <div className="favorite-item-info">
+                    <div className="favorite-item-name">{fav.name}</div>
+                    <div className="favorite-item-address">
+                      {fav.address || `${fav.lng.toFixed(4)}, ${fav.lat.toFixed(4)}`}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  type="text"
+                  title="添加"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => {
+                    onAddFromFavorite(fav)
+                    setShowFavoritesModal(false)
+                  }}
+                >
+                  
+                </Button>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={() => onRemoveFavorite(fav.id)}
+                  title="取消收藏"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

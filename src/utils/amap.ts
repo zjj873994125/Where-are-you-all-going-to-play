@@ -302,6 +302,11 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
     placeSearch.getDetails(poiId, (status: string, result: any) => {
       if (status === 'complete' && result.poiList?.pois?.length > 0) {
         const poi = result.poiList.pois[0]
+        // photos 字段可能是数组、字符串或 undefined，需要做类型检查
+        let photos: { url: string }[] = []
+        if (Array.isArray(poi.photos)) {
+          photos = poi.photos.map((p: any) => ({ url: p.url }))
+        }
         const detail: POIDetail = {
           id: poi.id,
           name: poi.name,
@@ -311,7 +316,7 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
           distance: poi.distance,
           type: poi.type,
           tel: poi.tel || undefined,
-          photos: poi.photos?.map((p: any) => ({ url: p.url })) || [],
+          photos,
           rating: poi.biz_ext?.rating ? parseFloat(poi.biz_ext.rating) : undefined,
           openingHours: poi.biz_ext?.opentime || undefined,
           website: poi.website || undefined,

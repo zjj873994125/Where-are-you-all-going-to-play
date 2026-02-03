@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { message } from 'antd'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
@@ -8,6 +8,7 @@ import POIDetailCard from './components/POIDetailCard'
 import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City } from './types'
 import { calculateMidPoint } from './utils/mapCalc'
 import { searchPOI, getCurrentCity, getPOIDetail } from './utils/amap'
+import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 function App() {
@@ -25,6 +26,9 @@ function App() {
   const [isSatellite, setIsSatellite] = useState(false)
   const [isRanging, setIsRanging] = useState(false)
 
+  // 收藏功能
+  const { favorites, addFavorite, removeFavorite, isFavorite } = useFavorites()
+
   // 卡片收起/展开状态（移动端默认收起）
   const isMobile = window.innerWidth <= 768
   const [panelStates, setPanelStates] = useState({
@@ -32,8 +36,14 @@ function App() {
     poi: false,
   })
 
+  // 用于追踪定位是否已完成，避免 StrictMode 下重复执行
+  const hasInitializedRef = useRef(false)
+
   // 首次进入自动获取当前城市
   useEffect(() => {
+    // 如果已经初始化过，直接返回
+    if (hasInitializedRef.current) return
+
     console.log('App: useEffect 执行，开始定位流程')
 
     let checkAMap: NodeJS.Timeout | null = null
@@ -41,8 +51,9 @@ function App() {
     let hasCompleted = false
 
     const completeInit = (city: City | null) => {
-      if (hasCompleted) return
+      if (hasCompleted || hasInitializedRef.current) return
       hasCompleted = true
+      hasInitializedRef.current = true
 
       if (checkAMap) clearInterval(checkAMap)
       if (timeoutId) clearTimeout(timeoutId)
@@ -112,9 +123,16 @@ function App() {
       setMidPoint(mid)
       return newPoints
     })
+    message.success({
+      content: `已添加: ${point.name}`,
+      duration: 1.5,
+    })
   }, [])
 
   const handleRemovePoint = useCallback((id: string) => {
+    // 先获取要删除的点的名称（在 state 更新前）
+    const removedPoint = points.find((p) => p.id === id)
+
     setPoints((prev) => {
       const newPoints = prev.filter((p) => p.id !== id)
       const mid = calculateMidPoint(newPoints)
@@ -124,7 +142,15 @@ function App() {
       }
       return newPoints
     })
-  }, [])
+
+    // 在 setPoints 外部显示提示，避免 StrictMode 下重复执行
+    if (removedPoint) {
+      message.info({
+        content: `已移除: ${removedPoint.name}`,
+        duration: 1.5,
+      })
+    }
+  }, [points])
 
   const handleClearAll = useCallback(() => {
     setPoints([])
@@ -133,7 +159,61 @@ function App() {
     setSelectedPOI(null)
     setActiveSearchType(null)
     setPoiDetail(null)
+    message.info({
+      content: '已清空所有地点',
+      duration: 1.5,
+    })
   }, [])
+
+  // 处理地点拖拽排序
+  const handleReorderPoints = useCallback((newPoints: LocationPoint[]) => {
+    setPoints(newPoints)
+    // 中点不变，不需要重新计算
+  }, [])
+
+  // 收藏地点
+  const handleAddFavorite = useCallback((point: LocationPoint) => {
+    const success = addFavorite(point)
+    if (success) {
+      message.success({
+        content: `已收藏: ${point.name}`,
+        duration: 1.5,
+      })
+    } else {
+      message.info({
+        content: '该地点已在收藏中',
+        duration: 1.5,
+      })
+    }
+  }, [addFavorite])
+
+  // 取消收藏
+  const handleRemoveFavorite = useCallback((id: string) => {
+    removeFavorite(id)
+    message.info({
+      content: '已取消收藏',
+      duration: 1.5,
+    })
+  }, [removeFavorite])
+
+  // 从收藏添加地点
+  const handleAddFromFavorite = useCallback((point: LocationPoint) => {
+    // 检查是否已经添加
+    const exists = points.some((p) => p.lng === point.lng && p.lat === point.lat)
+    if (exists) {
+      message.info({
+        content: '该地点已添加',
+        duration: 1.5,
+      })
+      return
+    }
+    // 创建新的 point（使用新 ID）
+    const newPoint: LocationPoint = {
+      ...point,
+      id: Date.now().toString(),
+    }
+    handleAddPoint(newPoint)
+  }, [points, handleAddPoint])
 
   const handleMapClick = useCallback((lng: number, lat: number) => {
     const point: LocationPoint = {
@@ -246,12 +326,18 @@ function App() {
               onAddPoint={handleAddPoint}
               onRemovePoint={handleRemovePoint}
               onClearAll={handleClearAll}
+              onReorderPoints={handleReorderPoints}
               onSearch={handleSearch}
               onLocatePoint={setFocusPoint}
               isSearching={isSearching}
               searchRadius={searchRadius}
               onSearchRadiusChange={setSearchRadius}
               currentCity={currentCity}
+              favorites={favorites}
+              onAddFavorite={handleAddFavorite}
+              onRemoveFavorite={handleRemoveFavorite}
+              onAddFromFavorite={handleAddFromFavorite}
+              isFavorite={isFavorite}
             />
           )}
         </div>
@@ -295,6 +381,7 @@ function App() {
                   pois={pois}
                   selectedPOI={selectedPOI}
                   onSelectPOI={handleSelectPOI}
+                  loading={isSearching}
                 />
               </>
             )}
