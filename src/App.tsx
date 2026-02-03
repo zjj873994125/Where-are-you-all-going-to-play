@@ -12,7 +12,7 @@ import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 // 当前版本号
-const APP_VERSION = '1.1.0'
+const APP_VERSION = '1.1.1'
 const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
 
 function App() {
@@ -24,6 +24,7 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [searchRadius, setSearchRadius] = useState<SearchRadius>(1000)
   const [activeSearchType, setActiveSearchType] = useState<SearchType | null>(null)
+  const [lastSearchKeyword, setLastSearchKeyword] = useState<string>('') // 保存上次搜索关键词
   const [poiDetail, setPoiDetail] = useState<POIDetail | null>(null)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [focusPoint, setFocusPoint] = useState<LocationPoint | null>(null)
@@ -275,10 +276,12 @@ function App() {
   const handleSearch = useCallback(async (type: SearchType, keyword?: string, radius: SearchRadius = 500) => {
     if (!midPoint) return
 
+    const searchKeyword = keyword || type
     setIsSearching(true)
     setActiveSearchType(type)
+    setLastSearchKeyword(searchKeyword) // 保存搜索关键词
     try {
-      const results = await searchPOI(keyword || type, midPoint.lng, midPoint.lat, radius)
+      const results = await searchPOI(searchKeyword, midPoint.lng, midPoint.lat, radius)
       setPois(results)
       if (results.length > 0) {
         setSelectedPOI(null)
@@ -295,6 +298,53 @@ function App() {
       setIsSearching(false)
     }
   }, [midPoint])
+
+  // 处理搜索范围变化，自动重新搜索
+  const handleSearchRadiusChange = useCallback(async (radius: SearchRadius) => {
+    setSearchRadius(radius)
+    // 如果有活跃搜索，使用新范围重新搜索
+    if (activeSearchType && midPoint && lastSearchKeyword) {
+      setIsSearching(true)
+      try {
+        const results = await searchPOI(lastSearchKeyword, midPoint.lng, midPoint.lat, radius)
+        setPois(results)
+        if (results.length > 0) {
+          setSelectedPOI(null)
+          setPoiDetail(null)
+        } else {
+          message.info('未找到相关场所')
+        }
+      } catch (error) {
+        console.error('Search failed:', error)
+        message.error('搜索失败，请重试')
+      } finally {
+        setIsSearching(false)
+      }
+    }
+  }, [activeSearchType, midPoint, lastSearchKeyword])
+
+  // 中点变化时自动重新搜索
+  useEffect(() => {
+    if (!midPoint || !activeSearchType || !lastSearchKeyword) return
+
+    const reSearch = async () => {
+      setIsSearching(true)
+      try {
+        const results = await searchPOI(lastSearchKeyword, midPoint.lng, midPoint.lat, searchRadius)
+        setPois(results)
+        if (results.length > 0) {
+          setSelectedPOI(null)
+          setPoiDetail(null)
+        }
+      } catch (error) {
+        console.error('Search failed:', error)
+      } finally {
+        setIsSearching(false)
+      }
+    }
+
+    reSearch()
+  }, [midPoint?.lng, midPoint?.lat]) // 只在中点坐标变化时触发
 
   const handleSelectPOI = useCallback(async (poi: POI) => {
     setSelectedPOI(poi)
@@ -378,7 +428,7 @@ function App() {
               onLocatePoint={setFocusPoint}
               isSearching={isSearching}
               searchRadius={searchRadius}
-              onSearchRadiusChange={setSearchRadius}
+              onSearchRadiusChange={handleSearchRadiusChange}
               currentCity={currentCity}
               favorites={favorites}
               onAddFavorite={handleAddFavorite}
@@ -519,11 +569,11 @@ function App() {
           <div className="welcome-section">
             <h4>📢 版本更新 v{APP_VERSION}</h4>
             <ul className="changelog-list">
-              <li>新增收藏地点功能，支持收藏常用位置</li>
-              <li>新增使用说明弹窗</li>
-              <li>优化 POI 列表加载体验，添加骨架屏</li>
-              <li>支持地点拖拽排序</li>
-              <li>修复若干已知问题</li>
+              <li>修复切换搜索范围时结果不更新的问题</li>
+              <li>修复新增/删除点位后搜索结果不更新的问题</li>
+              <li>修复页面刷新时偶发的重复请求问题</li>
+              <li>优化使用说明弹窗移动端显示效果</li>
+              <li>「不再提示」选项支持取消勾选恢复自动弹出</li>
             </ul>
           </div>
         </div>
