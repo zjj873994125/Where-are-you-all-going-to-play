@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Input,
   Button,
@@ -37,6 +37,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { debounce } from 'lodash'
 import Icon from './Icon'
 import { LocationPoint, SearchType, SearchRadius, City } from '@/types'
 import { searchByKeyword } from '@/utils/amap'
@@ -227,10 +228,18 @@ export default function LocationPanel({
     data: item
   }))
 
-  const handleSearch = async (value: string) => {
-    if (!value.trim()) return
-    const results = await searchByKeyword(value, currentCity?.name)
-    setSearchResults(results)
+  // 地点搜索防抖
+  const debouncedSearch = useMemo(
+    () => debounce(async (value: string) => {
+      if (!value.trim()) return
+      const results = await searchByKeyword(value, currentCity?.name)
+      setSearchResults(results)
+    }, 200),
+    [currentCity?.name]
+  )
+
+  const handleSearch = (value: string) => {
+    debouncedSearch(value)
   }
 
   const handleSelectSearch = (_value: string, option: any) => {

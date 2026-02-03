@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { message, Modal, Checkbox, Divider, Tag, Button } from 'antd'
+import { debounce } from 'lodash'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
@@ -299,14 +300,12 @@ function App() {
     }
   }, [midPoint])
 
-  // 处理搜索范围变化，自动重新搜索
-  const handleSearchRadiusChange = useCallback(async (radius: SearchRadius) => {
-    setSearchRadius(radius)
-    // 如果有活跃搜索，使用新范围重新搜索
-    if (activeSearchType && midPoint && lastSearchKeyword) {
+  // 防抖的 POI 搜索函数
+  const debouncedPOISearch = useMemo(
+    () => debounce(async (keyword: string, lng: number, lat: number, radius: SearchRadius) => {
       setIsSearching(true)
       try {
-        const results = await searchPOI(lastSearchKeyword, midPoint.lng, midPoint.lat, radius)
+        const results = await searchPOI(keyword, lng, lat, radius)
         setPois(results)
         if (results.length > 0) {
           setSelectedPOI(null)
@@ -320,30 +319,24 @@ function App() {
       } finally {
         setIsSearching(false)
       }
+    }, 200),
+    []
+  )
+
+  // 处理搜索范围变化，自动重新搜索
+  const handleSearchRadiusChange = useCallback((radius: SearchRadius) => {
+    setSearchRadius(radius)
+    // 如果有活跃搜索，使用新范围重新搜索
+    if (activeSearchType && midPoint && lastSearchKeyword) {
+      debouncedPOISearch(lastSearchKeyword, midPoint.lng, midPoint.lat, radius)
     }
-  }, [activeSearchType, midPoint, lastSearchKeyword])
+  }, [activeSearchType, midPoint, lastSearchKeyword, debouncedPOISearch])
 
   // 中点变化时自动重新搜索
   useEffect(() => {
     if (!midPoint || !activeSearchType || !lastSearchKeyword) return
 
-    const reSearch = async () => {
-      setIsSearching(true)
-      try {
-        const results = await searchPOI(lastSearchKeyword, midPoint.lng, midPoint.lat, searchRadius)
-        setPois(results)
-        if (results.length > 0) {
-          setSelectedPOI(null)
-          setPoiDetail(null)
-        }
-      } catch (error) {
-        console.error('Search failed:', error)
-      } finally {
-        setIsSearching(false)
-      }
-    }
-
-    reSearch()
+    debouncedPOISearch(lastSearchKeyword, midPoint.lng, midPoint.lat, searchRadius)
   }, [midPoint?.lng, midPoint?.lat]) // 只在中点坐标变化时触发
 
   const handleSelectPOI = useCallback(async (poi: POI) => {
