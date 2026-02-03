@@ -92,6 +92,7 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
   const rangingToolRef = useRef<any>(null)
   const satelliteLayerRef = useRef<any>(null)
   const isRangingRef = useRef<boolean>(false)
+  const mapInitializedRef = useRef<boolean>(false) // 防止重复初始化
 
   // 测距提示框状态
   const [rangingTip, setRangingTip] = useState({
@@ -104,53 +105,67 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
 
   // 初始化或更新地图
   useEffect(() => {
-    let checkAMap: NodeJS.Timeout | null = null
+    // 如果已经初始化过，只处理城市变化
+    if (mapInitializedRef.current && mapInstanceRef.current) {
+      const cityName = currentCity?.name || null
+      if (cityName && cityName !== initializedCityRef.current) {
+        const center = getCityCenter(currentCity)
+        mapInstanceRef.current.setCenter(center)
+        mapInstanceRef.current.setZoom(12)
+        initializedCityRef.current = cityName
+      }
+      return
+    }
 
-    const initOrUpdateMap = () => {
+    let checkAMap: NodeJS.Timeout | null = null
+    let isCancelled = false
+
+    const initMap = () => {
+      if (isCancelled || mapInitializedRef.current) return
       if (!window.AMap || !mapRef.current) return
 
       const cityName = currentCity?.name || null
       const center = getCityCenter(currentCity)
 
-      // 如果地图还没初始化，创建新地图
-      if (!mapInstanceRef.current) {
-        const map = new window.AMap.Map(mapRef.current, {
-          zoom: 12,
-          center: center,
-          mapStyle: 'amap://styles/normal',
-          viewMode: '2D',
-        })
+      const map = new window.AMap.Map(mapRef.current, {
+        zoom: 12,
+        center: center,
+        mapStyle: 'amap://styles/normal',
+        viewMode: '2D',
+      })
 
-        map.on('click', (e: any) => {
-          if (!isRangingRef.current) {
-            onMapClick(e.lnglat.lng, e.lnglat.lat)
-          }
-        })
+      map.on('click', (e: any) => {
+        if (!isRangingRef.current) {
+          onMapClick(e.lnglat.lng, e.lnglat.lat)
+        }
+      })
 
-        mapInstanceRef.current = map
-        initializedCityRef.current = cityName
-      } else if (cityName && cityName !== initializedCityRef.current) {
-        // 城市变化，更新地图中心
-        mapInstanceRef.current.setCenter(center)
-        mapInstanceRef.current.setZoom(12)
-        initializedCityRef.current = cityName
+      mapInstanceRef.current = map
+      initializedCityRef.current = cityName
+      mapInitializedRef.current = true
+
+      // 初始化成功后清除轮询
+      if (checkAMap) {
+        clearInterval(checkAMap)
+        checkAMap = null
       }
     }
 
     // 立即尝试初始化
-    initOrUpdateMap()
+    initMap()
 
     // 如果还没初始化，轮询等待
-    if (!mapInstanceRef.current) {
-      checkAMap = setInterval(() => {
-        initOrUpdateMap()
-      }, 100)
+    if (!mapInitializedRef.current) {
+      checkAMap = setInterval(initMap, 100)
     }
 
     return () => {
-      if (checkAMap) clearInterval(checkAMap)
+      isCancelled = true
+      if (checkAMap) {
+        clearInterval(checkAMap)
+      }
     }
-  }, [currentCity])
+  }, [currentCity, onMapClick])
 
   // 点击地点列表时平移地图到该点
   useEffect(() => {

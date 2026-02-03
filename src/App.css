@@ -139,27 +139,26 @@
 
 /* 地图工具栏 */
 .map-toolbar {
-  position: absolute;
-  top: 0px;
-  right: 0px;
+  position: fixed;
+  top: 12px;
+  right: 12px;
   display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
-  flex-shrink: 0;
   z-index: 100;
 }
 
 .toolbar-btn {
-  flex: 1;
   padding: 6px 10px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  background: #fafafa;
+  background: rgba(255, 255, 255, 0.95);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   color: #4b5563;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .toolbar-btn:hover {
@@ -893,4 +892,60 @@
 
 .favorites-modal-list .favorite-item-address {
   font-size: 12px;
+}
+
+/* 使用说明弹窗样式 */
+.welcome-modal-content {
+  padding: 8px 0;
+}
+
+.welcome-section {
+  margin-bottom: 16px;
+}
+
+.welcome-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.welcome-section p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.welcome-section ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.welcome-section ul li {
+  margin-bottom: 4px;
+}
+
+.welcome-section ul li strong {
+  color: #1f2937;
+}
+
+.changelog-list {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 12px 12px 12px 32px !important;
+  margin-top: 8px !important;
+}
+
+.changelog-list li {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.welcome-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
 }

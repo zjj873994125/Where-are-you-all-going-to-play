@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { message } from 'antd'
+import { message, Modal, Checkbox, Divider, Tag } from 'antd'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
@@ -10,6 +10,10 @@ import { calculateMidPoint } from './utils/mapCalc'
 import { searchPOI, getCurrentCity, getPOIDetail } from './utils/amap'
 import { useFavorites } from './hooks/useFavorites'
 import './App.css'
+
+// 当前版本号
+const APP_VERSION = '1.1.0'
+const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
 
 function App() {
   const [currentCity, setCurrentCity] = useState<City | null>(null)
@@ -26,6 +30,10 @@ function App() {
   const [isSatellite, setIsSatellite] = useState(false)
   const [isRanging, setIsRanging] = useState(false)
 
+  // 使用说明弹窗
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
+  const [dontShowAgain, setDontShowAgain] = useState(false)
+
   // 收藏功能
   const { favorites, addFavorite, removeFavorite, isFavorite } = useFavorites()
 
@@ -38,55 +46,88 @@ function App() {
 
   // 用于追踪定位是否已完成，避免 StrictMode 下重复执行
   const hasInitializedRef = useRef(false)
+  const hasCheckedWelcomeRef = useRef(false)
+
+  // 检查是否显示使用说明弹窗
+  useEffect(() => {
+    if (hasCheckedWelcomeRef.current) return
+    hasCheckedWelcomeRef.current = true
+
+    const hideWelcome = localStorage.getItem(WELCOME_STORAGE_KEY)
+    if (hideWelcome !== 'true') {
+      setShowWelcomeModal(true)
+    }
+  }, [])
+
+  // 关闭弹窗时保存设置
+  const handleCloseWelcome = useCallback(() => {
+    if (dontShowAgain) {
+      localStorage.setItem(WELCOME_STORAGE_KEY, 'true')
+    }
+    setShowWelcomeModal(false)
+  }, [dontShowAgain])
+
+  // 测距结束回调
+  const handleRangingEnd = useCallback(() => {
+    setIsRanging(false)
+  }, [])
 
   // 首次进入自动获取当前城市
   useEffect(() => {
     // 如果已经初始化过，直接返回
     if (hasInitializedRef.current) return
 
-    console.log('App: useEffect 执行，开始定位流程')
-
     let checkAMap: NodeJS.Timeout | null = null
     let timeoutId: NodeJS.Timeout | null = null
     let hasCompleted = false
+    let isRequesting = false // 防止重复请求
 
     const completeInit = (city: City | null) => {
       if (hasCompleted || hasInitializedRef.current) return
       hasCompleted = true
       hasInitializedRef.current = true
 
-      if (checkAMap) clearInterval(checkAMap)
-      if (timeoutId) clearTimeout(timeoutId)
+      // 立即清除定时器
+      if (checkAMap) {
+        clearInterval(checkAMap)
+        checkAMap = null
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+        timeoutId = null
+      }
 
       if (city) {
-        console.log('App: 设置城市', city.name)
         setCurrentCity(city)
         message.success(`已定位到：${city.name}`)
       } else {
-        console.log('App: 定位失败，使用默认北京')
         setCurrentCity({ name: '北京', adcode: '110000' })
       }
     }
 
     const initCity = () => {
-      console.log('App: initCity 调用，window.AMap =', !!window.AMap)
-      if (window.AMap && !hasCompleted) {
-        getCurrentCity().then((city) => {
-          console.log('App: 定位返回', city)
+      // 如果已完成或正在请求中，直接返回
+      if (hasCompleted || isRequesting || !window.AMap) return
+
+      isRequesting = true
+      getCurrentCity()
+        .then((city) => {
           completeInit(city)
-        }).catch((e) => {
-          console.log('App: 定位异常', e)
+        })
+        .catch(() => {
           completeInit(null)
         })
-      }
+        .finally(() => {
+          isRequesting = false
+        })
     }
 
     // 立即尝试
     initCity()
 
-    // 轮询等待 AMap 加载
+    // 轮询等待 AMap 加载（仅在未完成时）
     checkAMap = setInterval(() => {
-      if (!hasCompleted) {
+      if (!hasCompleted && !isRequesting) {
         initCity()
       }
     }, 100)
@@ -94,12 +135,12 @@ function App() {
     // 超时处理
     timeoutId = setTimeout(() => {
       if (!hasCompleted) {
-        console.log('App: 超时，使用默认北京')
         completeInit(null)
       }
     }, 5000)
 
     return () => {
+      hasCompleted = true // 组件卸载时标记为已完成
       if (checkAMap) clearInterval(checkAMap)
       if (timeoutId) clearTimeout(timeoutId)
     }
@@ -286,7 +327,7 @@ function App() {
         focusPoint={focusPoint}
         isSatellite={isSatellite}
         isRanging={isRanging}
-        onRangingEnd={() => setIsRanging(false)}
+        onRangingEnd={handleRangingEnd}
       />
 
       {/* 顶部栏 - 城市选择器和搜索范围 */}
@@ -360,6 +401,13 @@ function App() {
             📏 测距
           </button>
         )}
+        <button
+          className="toolbar-btn"
+          onClick={(e) => { e.stopPropagation(); setShowWelcomeModal(true) }}
+          title="使用说明"
+        >
+          💡
+        </button>
       </div>
       {/* 右侧悬浮面板 - 附近场所 */}
       {pois.length > 0 && (
@@ -412,6 +460,65 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* 使用说明弹窗 */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🗺️ 大家去哪玩</span>
+            <Tag color="blue">v{APP_VERSION}</Tag>
+          </div>
+        }
+        open={showWelcomeModal}
+        onCancel={handleCloseWelcome}
+        onOk={handleCloseWelcome}
+        okText="知道了"
+        cancelButtonProps={{ style: { display: 'none' } }}
+        width={500}
+      >
+        <div className="welcome-modal-content">
+          <div className="welcome-section">
+            <h4>📍 这是什么？</h4>
+            <p>一个帮助多人聚会找到最佳见面地点的工具。输入每个人的位置，自动计算中心点，并搜索附近的餐厅、咖啡厅等场所。</p>
+          </div>
+
+          <div className="welcome-section">
+            <h4>✨ 主要功能</h4>
+            <ul>
+              <li><strong>添加地点</strong> - 搜索或点击地图添加多个位置</li>
+              <li><strong>计算中点</strong> - 自动计算所有地点的几何中心</li>
+              <li><strong>附近搜索</strong> - 在中点附近搜索餐厅、咖啡厅、商场等</li>
+              <li><strong>一键导航</strong> - 支持驾车、步行、公交导航</li>
+              <li><strong>收藏地点</strong> - 收藏常用地点，下次快速添加</li>
+              <li><strong>拖拽排序</strong> - 拖动地点调整顺序</li>
+              <li><strong>卫星地图</strong> - 切换卫星视图</li>
+              <li><strong>测距工具</strong> - 测量地图上任意两点距离</li>
+            </ul>
+          </div>
+
+          <Divider style={{ margin: '16px 0' }} />
+
+          <div className="welcome-section">
+            <h4>📢 版本更新 v{APP_VERSION}</h4>
+            <ul className="changelog-list">
+              <li>新增收藏地点功能，支持收藏常用位置</li>
+              <li>新增使用说明弹窗</li>
+              <li>优化 POI 列表加载体验，添加骨架屏</li>
+              <li>支持地点拖拽排序</li>
+              <li>修复若干已知问题</li>
+            </ul>
+          </div>
+
+          <div className="welcome-footer">
+            <Checkbox
+              checked={dontShowAgain}
+              onChange={(e) => setDontShowAgain(e.target.checked)}
+            >
+              不再自动显示
+            </Checkbox>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
