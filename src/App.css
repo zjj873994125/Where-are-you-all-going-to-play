@@ -949,3 +949,23 @@
   padding-top: 12px;
   border-top: 1px solid #f0f0f0;
 }
+
+/* 使用说明弹窗移动端适配 */
+@media (max-width: 768px) {
+  .welcome-section h4 {
+    font-size: 14px;
+  }
+
+  .welcome-section p,
+  .welcome-section ul {
+    font-size: 13px;
+  }
+
+  .changelog-list {
+    padding: 10px 10px 10px 28px !important;
+  }
+
+  .changelog-list li {
+    font-size: 12px;
+  }
+}

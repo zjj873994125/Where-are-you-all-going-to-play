@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { message, Modal, Checkbox, Divider, Tag } from 'antd'
+import { message, Modal, Checkbox, Divider, Tag, Button } from 'antd'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
@@ -32,7 +32,10 @@ function App() {
 
   // 使用说明弹窗
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
-  const [dontShowAgain, setDontShowAgain] = useState(false)
+  const [dontShowAgain, setDontShowAgain] = useState(() => {
+    // 初始化时从 localStorage 读取状态
+    return localStorage.getItem(WELCOME_STORAGE_KEY) === 'true'
+  })
 
   // 收藏功能
   const { favorites, addFavorite, removeFavorite, isFavorite } = useFavorites()
@@ -63,6 +66,9 @@ function App() {
   const handleCloseWelcome = useCallback(() => {
     if (dontShowAgain) {
       localStorage.setItem(WELCOME_STORAGE_KEY, 'true')
+    } else {
+      // 如果取消勾选，移除存储的设置，下次刷新会再次弹出
+      localStorage.removeItem(WELCOME_STORAGE_KEY)
     }
     setShowWelcomeModal(false)
   }, [dontShowAgain])
@@ -471,10 +477,22 @@ function App() {
         }
         open={showWelcomeModal}
         onCancel={handleCloseWelcome}
-        onOk={handleCloseWelcome}
-        okText="知道了"
-        cancelButtonProps={{ style: { display: 'none' } }}
-        width={500}
+        width={isMobile ? '90vw' : 500}
+        centered={isMobile}
+        styles={isMobile ? { body: { maxHeight: '55vh', overflowY: 'auto' } } : undefined}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Checkbox
+              checked={dontShowAgain}
+              onChange={(e) => setDontShowAgain(e.target.checked)}
+            >
+              不再自动显示
+            </Checkbox>
+            <Button type="primary" onClick={handleCloseWelcome}>
+              知道了
+            </Button>
+          </div>
+        }
       >
         <div className="welcome-modal-content">
           <div className="welcome-section">
@@ -507,15 +525,6 @@ function App() {
               <li>支持地点拖拽排序</li>
               <li>修复若干已知问题</li>
             </ul>
-          </div>
-
-          <div className="welcome-footer">
-            <Checkbox
-              checked={dontShowAgain}
-              onChange={(e) => setDontShowAgain(e.target.checked)}
-            >
-              不再自动显示
-            </Checkbox>
           </div>
         </div>
       </Modal>
