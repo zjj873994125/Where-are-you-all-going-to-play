@@ -4,6 +4,7 @@ export interface LocationPoint {
   address?: string
   lng: number
   lat: number
+  travelTime?: number // 到中点的通勤时间（分钟）
 }
 
 export interface MidPoint extends LocationPoint {}
@@ -43,3 +44,6 @@ export type SearchType = '餐厅' | '咖啡厅' | '奶茶店' | '商场' | '酒�
 export type SearchRadius = 500 | 1000 | 2000 | 3000
 
 export type NavMode = 'drive' | 'walk' | 'bus'
+
+// 中点计算模式
+export type MidPointMode = 'straight' | 'driving' | 'transit'

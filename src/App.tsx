@@ -6,14 +6,14 @@ import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
 import POIDetailCard from './components/POIDetailCard'
-import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City } from './types'
-import { calculateMidPoint } from './utils/mapCalc'
-import { searchPOI, getCurrentCity, getPOIDetail } from './utils/amap'
+import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City, MidPointMode } from './types'
+import { calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
+import { searchPOI, getCurrentCity, getPOIDetail, RouteResult } from './utils/amap'
 import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 // 当前版本号
-const APP_VERSION = '1.1.1'
+const APP_VERSION = '1.2.0'
 const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
 
 function App() {
@@ -31,6 +31,12 @@ function App() {
   const [focusPoint, setFocusPoint] = useState<LocationPoint | null>(null)
   const [isSatellite, setIsSatellite] = useState(false)
   const [isRanging, setIsRanging] = useState(false)
+
+  // 中点计算模式和通勤时间
+  const [midPointMode, setMidPointMode] = useState<MidPointMode>('straight')
+  const [travelTimes, setTravelTimes] = useState<number[]>([])
+  const [travelRoutes, setTravelRoutes] = useState<Array<RouteResult | null>>([])
+  const [isCalculatingMidPoint, setIsCalculatingMidPoint] = useState(false)
 
   // 使用说明弹窗
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
@@ -158,6 +164,7 @@ function App() {
     setCurrentCity(city)
     setPoints([])
     setMidPoint(null)
+    setTravelTimes([])
     setPois([])
     setSelectedPOI(null)
     setActiveSearchType(null)
@@ -165,18 +172,71 @@ function App() {
     message.success(`已切换到：${city.name}`)
   }, [])
 
+  // 计算中点（统一函数）
+  const computeMidPoint = useCallback(async (pointsList: LocationPoint[], mode: MidPointMode) => {
+    if (pointsList.length < 2) {
+      setMidPoint(null)
+      setTravelTimes([])
+      setTravelRoutes([])
+      return
+    }
+
+    // 直线模式直接计算，不需要异步
+    if (mode === 'straight') {
+      const mid = calculateMidPoint(pointsList)
+      setMidPoint(mid)
+      setTravelTimes([])
+      setTravelRoutes([])
+      return
+    }
+
+    // 驾车/公交模式需要异步计算
+    setIsCalculatingMidPoint(true)
+    try {
+      const result = await calculateWeightedMidPoint(pointsList, mode, currentCity?.name)
+      if (result) {
+        setMidPoint(result.midPoint)
+        setTravelTimes(result.travelTimes)
+        setTravelRoutes(result.routes)
+
+        // 检查路线绘制情况并提示
+        const totalRoutes = result.routes.length
+        const validRoutes = result.routes.filter(r => r && r.path && r.path.length >= 2).length
+        const failedTimes = result.travelTimes.filter(t => t >= 999).length
+
+        if (totalRoutes > 0 && validRoutes === 0 && failedTimes === totalRoutes) {
+          message.warning('所有路线规划失败，请检查地点是否合理')
+        } else if (failedTimes > 0) {
+          message.warning(`${failedTimes}条路线规划失败，部分路线无法显示`)
+        }
+      }
+    } catch (error) {
+      console.error('计算中点失败:', error)
+      message.error('路线计算失败，已切换回直线模式')
+      // 失败时回退到几何中点
+      const mid = calculateMidPoint(pointsList)
+      setMidPoint(mid)
+      setTravelTimes([])
+      setTravelRoutes([])
+    } finally {
+      setIsCalculatingMidPoint(false)
+    }
+  }, [currentCity?.name])
+
   const handleAddPoint = useCallback((point: LocationPoint) => {
     setPoints((prev) => {
       const newPoints = [...prev, point]
-      const mid = calculateMidPoint(newPoints)
-      setMidPoint(mid)
+      // 新增点后切换到直线模式
+      setMidPointMode('straight')
+      // 异步计算中点（使用直线模式）
+      computeMidPoint(newPoints, 'straight')
       return newPoints
     })
     message.success({
       content: `已添加: ${point.name}`,
       duration: 1.5,
     })
-  }, [])
+  }, [computeMidPoint])
 
   const handleRemovePoint = useCallback((id: string) => {
     // 先获取要删除的点的名称（在 state 更新前）
@@ -184,8 +244,8 @@ function App() {
 
     setPoints((prev) => {
       const newPoints = prev.filter((p) => p.id !== id)
-      const mid = calculateMidPoint(newPoints)
-      setMidPoint(mid)
+      // 异步计算中点
+      computeMidPoint(newPoints, midPointMode)
       if (newPoints.length < 2) {
         setPois([])
       }
@@ -199,11 +259,13 @@ function App() {
         duration: 1.5,
       })
     }
-  }, [points])
+  }, [points, computeMidPoint, midPointMode])
 
   const handleClearAll = useCallback(() => {
     setPoints([])
     setMidPoint(null)
+    setTravelTimes([])
+    setTravelRoutes([])
     setPois([])
     setSelectedPOI(null)
     setActiveSearchType(null)
@@ -219,6 +281,15 @@ function App() {
     setPoints(newPoints)
     // 中点不变，不需要重新计算
   }, [])
+
+  // 处理中点计算模式切换
+  const handleMidPointModeChange = useCallback((mode: MidPointMode) => {
+    setMidPointMode(mode)
+    // 切换模式时重新计算中点
+    if (points.length >= 2) {
+      computeMidPoint(points, mode)
+    }
+  }, [points, computeMidPoint])
 
   // 收藏地点
   const handleAddFavorite = useCallback((point: LocationPoint) => {
@@ -377,6 +448,8 @@ function App() {
         isSatellite={isSatellite}
         isRanging={isRanging}
         onRangingEnd={handleRangingEnd}
+        travelRoutes={travelRoutes}
+        midPointMode={midPointMode}
       />
 
       {/* 顶部栏 - 城市选择器和搜索范围 */}
@@ -428,6 +501,10 @@ function App() {
               onRemoveFavorite={handleRemoveFavorite}
               onAddFromFavorite={handleAddFromFavorite}
               isFavorite={isFavorite}
+              midPointMode={midPointMode}
+              onMidPointModeChange={handleMidPointModeChange}
+              travelTimes={travelTimes}
+              isCalculatingMidPoint={isCalculatingMidPoint}
             />
           )}
         </div>
@@ -547,7 +624,7 @@ function App() {
             <h4>✨ 主要功能</h4>
             <ul>
               <li><strong>添加地点</strong> - 搜索或点击地图添加多个位置</li>
-              <li><strong>计算中点</strong> - 自动计算所有地点的几何中心</li>
+              <li><strong>智能中点</strong> - 支持直线距离、驾车时间、公交时间三种计算模式</li>
               <li><strong>附近搜索</strong> - 在中点附近搜索餐厅、咖啡厅、商场等</li>
               <li><strong>一键导航</strong> - 支持驾车、步行、公交导航</li>
               <li><strong>收藏地点</strong> - 收藏常用地点，下次快速添加</li>
@@ -562,11 +639,10 @@ function App() {
           <div className="welcome-section">
             <h4>📢 版本更新 v{APP_VERSION}</h4>
             <ul className="changelog-list">
-              <li>修复切换搜索范围时结果不更新的问题</li>
-              <li>修复新增/删除点位后搜索结果不更新的问题</li>
-              <li>修复页面刷新时偶发的重复请求问题</li>
-              <li>优化使用说明弹窗移动端显示效果</li>
-              <li>「不再提示」选项支持取消勾选恢复自动弹出</li>
+              <li>新增中点计算模式：支持直线距离、驾车时间、公交时间</li>
+              <li>驾车/公交模式会根据通勤时间智能优化中点位置</li>
+              <li>地点列表显示每个人到中点的预估通勤时间</li>
+              <li>新增搜索防抖，优化请求性能</li>
             </ul>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { LocationPoint, MidPoint, POI, City, SearchRadius, SearchType } from '@/types'
+import { LocationPoint, MidPoint, POI, City, SearchRadius, SearchType, MidPointMode } from '@/types'
+import { RouteResult } from '@/utils/amap'
 
 interface MapViewProps {
   points: LocationPoint[]
@@ -15,6 +16,8 @@ interface MapViewProps {
   isSatellite?: boolean
   isRanging?: boolean
   onRangingEnd?: () => void
+  travelRoutes?: Array<RouteResult | null>
+  midPointMode?: MidPointMode
 }
 
 // 搜索类型对应的图标和颜色配置
@@ -80,7 +83,19 @@ function getCityCenter(city: City | null | undefined): [number, number] {
   return cityCenterMap['北京']
 }
 
-export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint, isSatellite, isRanging, onRangingEnd }: MapViewProps) {
+// 路线颜色列表（亮色，用于区分不同起点的路线）
+const routeColors = [
+  '#5B8FF9', // 亮蓝
+  '#5AD8A6', // 亮绿
+  '#F6BD16', // 亮黄
+  '#E86452', // 亮红
+  '#9270CA', // 亮紫
+  '#269A99', // 亮青
+  '#FF9AD5', // 亮粉
+  '#6DC8EC', // 天蓝
+]
+
+export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint, isSatellite, isRanging, onRangingEnd, travelRoutes = [], midPointMode = 'straight' }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -93,6 +108,7 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
   const satelliteLayerRef = useRef<any>(null)
   const isRangingRef = useRef<boolean>(false)
   const mapInitializedRef = useRef<boolean>(false) // 防止重复初始化
+  const routePolylinesRef = useRef<any[]>([]) // 路线折线
 
   // 测距提示框状态
   const [rangingTip, setRangingTip] = useState({
@@ -500,6 +516,78 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
       })
     }
   }, [pois, selectedPOI, searchType, onSelectPOI])
+
+  // 绘制路线
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+
+    const map = mapInstanceRef.current
+
+    // 清除旧路线
+    routePolylinesRef.current.forEach((polyline) => {
+      if (polyline) {
+        try {
+          polyline.setMap(null)
+        } catch (e) {
+          // 忽略清除错误
+        }
+      }
+    })
+    routePolylinesRef.current = []
+
+    // 如果是直线模式或没有路线数据，不绘制
+    if (midPointMode === 'straight' || !travelRoutes || travelRoutes.length === 0) {
+      return
+    }
+
+    // 绘制每条路线
+    travelRoutes.forEach((route, index) => {
+      // 严格校验路线数据
+      if (!route || !route.path || !Array.isArray(route.path) || route.path.length < 2) {
+        console.log(`路线 ${index + 1} 数据无效，跳过绘制`)
+        return
+      }
+
+      // 过滤无效的点位
+      const validPath = route.path.filter(p =>
+        p && typeof p.lng === 'number' && typeof p.lat === 'number' &&
+        !isNaN(p.lng) && !isNaN(p.lat) &&
+        p.lng >= -180 && p.lng <= 180 &&
+        p.lat >= -90 && p.lat <= 90
+      )
+
+      if (validPath.length < 2) {
+        console.log(`路线 ${index + 1} 有效点位不足，跳过绘制`)
+        return
+      }
+
+      const color = routeColors[index % routeColors.length]
+
+      // 将路径点转换为 AMap 格式
+      const path = validPath.map(p => [p.lng, p.lat])
+
+      try {
+        // 创建折线（虚线样式）
+        const polyline = new window.AMap.Polyline({
+          path: path,
+          strokeColor: color,
+          strokeWeight: 5,
+          strokeOpacity: 0.85,
+          strokeStyle: 'dashed',
+          strokeDasharray: [10, 5],
+          lineJoin: 'round',
+          lineCap: 'round',
+          zIndex: 60,
+        })
+
+        polyline.setMap(map)
+        routePolylinesRef.current.push(polyline)
+        console.log(`路线 ${index + 1} 绘制成功，共 ${validPath.length} 个点`)
+      } catch (e) {
+        console.error(`路线 ${index + 1} 绘制失败:`, e)
+      }
+    })
+  }, [travelRoutes, midPointMode])
 
   return (
     <>

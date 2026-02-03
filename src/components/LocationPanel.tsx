@@ -11,6 +11,8 @@ import {
   AutoComplete,
   Badge,
   Modal,
+  Spin,
+  Popover,
 } from 'antd'
 import {
   SearchOutlined,
@@ -19,6 +21,8 @@ import {
   StarOutlined,
   StarFilled,
   PlusOutlined,
+  LoadingOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons'
 import {
   DndContext,
@@ -39,7 +43,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { debounce } from 'lodash'
 import Icon from './Icon'
-import { LocationPoint, SearchType, SearchRadius, City } from '@/types'
+import { LocationPoint, SearchType, SearchRadius, City, MidPointMode } from '@/types'
 import { searchByKeyword } from '@/utils/amap'
 import { FavoritePoint } from '@/hooks/useFavorites'
 
@@ -63,6 +67,11 @@ interface LocationPanelProps {
   onRemoveFavorite: (id: string) => void
   onAddFromFavorite: (point: LocationPoint) => void
   isFavorite: (point: LocationPoint) => boolean
+  // 中点计算模式相关
+  midPointMode?: MidPointMode
+  onMidPointModeChange?: (mode: MidPointMode) => void
+  travelTimes?: number[]
+  isCalculatingMidPoint?: boolean
 }
 
 // 注意：请根据你的阿里图标库中的实际图标类名替换下面的 icon-xxx
@@ -87,6 +96,13 @@ const radiusOptions = [
   { label: '3km', value: 3000 },
 ]
 
+// 中点计算模式选项
+const midPointModeOptions = [
+  { label: '直线', value: 'straight' },
+  { label: '驾车', value: 'driving' },
+  { label: '公交', value: 'transit' },
+]
+
 const getLocationLabel = (index: number) => {
   const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
   return labels[index] || '?'
@@ -100,9 +116,11 @@ interface SortableLocationItemProps {
   onLocate?: (point: LocationPoint) => void
   onFavorite?: (point: LocationPoint) => void
   isFavorited?: boolean
+  travelTime?: number // 通勤时间（分钟）
+  showTravelTime?: boolean
 }
 
-function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, isFavorited }: SortableLocationItemProps) {
+function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, isFavorited, travelTime, showTravelTime }: SortableLocationItemProps) {
   const {
     attributes,
     listeners,
@@ -140,7 +158,14 @@ function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, is
           {getLocationLabel(index)}
         </div>
         <div className="location-item-info">
-          <div className="location-item-name">{point.name}</div>
+          <div className="location-item-name">
+            {point.name}
+            {showTravelTime && travelTime !== undefined && travelTime < 999 && (
+              <Tag color="blue" style={{ marginLeft: 6, fontSize: 11 }}>
+                {travelTime}分钟
+              </Tag>
+            )}
+          </div>
           <div className="location-item-address">
             {point.address || `${point.lng.toFixed(4)}, ${point.lat.toFixed(4)}`}
           </div>
@@ -187,6 +212,10 @@ export default function LocationPanel({
   onRemoveFavorite,
   onAddFromFavorite,
   isFavorite,
+  midPointMode = 'straight',
+  onMidPointModeChange,
+  travelTimes = [],
+  isCalculatingMidPoint = false,
 }: LocationPanelProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -322,6 +351,9 @@ export default function LocationPanel({
           <Space>
             <Text strong>已添加</Text>
             <Badge count={points.length} style={{ backgroundColor: '#667eea' }} />
+            {isCalculatingMidPoint && (
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 14 }} spin />} />
+            )}
           </Space>
           {points.length > 0 && (
             <Button
@@ -360,6 +392,8 @@ export default function LocationPanel({
                     onLocate={onLocatePoint}
                     onFavorite={onAddFavorite}
                     isFavorited={isFavorite(point)}
+                    travelTime={travelTimes[index]}
+                    showTravelTime={midPointMode !== 'straight' && travelTimes.length > 0}
                   />
                 ))}
               </div>
@@ -367,6 +401,100 @@ export default function LocationPanel({
           </DndContext>
         )}
       </div>
+
+      {/* 中点计算模式 */}
+      {points.length >= 2 && (
+        <>
+          <Divider style={{ margin: '12px 0' }} />
+          <div className="panel-section">
+            <div className="section-header">
+              <Space>
+                <Icon type="icon-thunderbolt" style={{ color: '#667eea' }} />
+                <Text strong>中点计算</Text>
+              </Space>
+            </div>
+            <Radio.Group
+              value={midPointMode}
+              onChange={(e) => onMidPointModeChange?.(e.target.value)}
+              optionType="button"
+              buttonStyle="solid"
+              size="small"
+              style={{ width: '100%' }}
+              disabled={isCalculatingMidPoint}
+            >
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {midPointModeOptions.map(opt => (
+                  <Radio.Button key={opt.value} value={opt.value} style={{ flex: 1 }}>
+                    {opt.label}
+                  </Radio.Button>
+                ))}
+              </div>
+            </Radio.Group>
+            {midPointMode !== 'straight' && (
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 6, display: 'block' }}>
+                {midPointMode === 'driving' ? '根据驾车时间' : '根据公交时间'}优化中点位置
+              </Text>
+            )}
+
+            {/* 通勤时间汇总 - 使用 Popover 显示详情 */}
+            {midPointMode !== 'straight' && travelTimes.length > 0 && !isCalculatingMidPoint && (
+              (() => {
+                const validTimes = travelTimes.filter(t => t !== undefined && t < 999)
+                const allFailed = validTimes.length === 0
+
+                // 详情内容
+                const detailContent = (
+                  <div className="travel-time-popover">
+                    <div className="travel-time-list">
+                      {points.map((point, index) => (
+                        <div key={point.id} className="travel-time-item">
+                          <span className="travel-time-label">{getLocationLabel(index)}</span>
+                          <span className="travel-time-name">{point.name}</span>
+                          <span className="travel-time-value">
+                            {travelTimes[index] !== undefined && travelTimes[index] < 999
+                              ? `${travelTimes[index]}分钟`
+                              : '无法获取'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+
+                if (allFailed) {
+                  return (
+                    <div className="travel-time-summary-compact error">
+                      <InfoCircleOutlined style={{ marginRight: 6 }} />
+                      路线规划失败，请检查网络
+                    </div>
+                  )
+                }
+
+                const avgTime = Math.round(validTimes.reduce((a, b) => a + b, 0) / validTimes.length)
+                const maxDiff = Math.max(...validTimes) - Math.min(...validTimes)
+
+                return (
+                  <Popover
+                    content={detailContent}
+                    title="通勤时间详情"
+                    trigger="click"
+                    placement="bottomLeft"
+                  >
+                    <div className="travel-time-summary-compact clickable">
+                      <span className="summary-text">
+                        平均 <strong>{avgTime}分钟</strong>
+                        {' · '}
+                        差异 <strong>{maxDiff}分钟</strong>
+                      </span>
+                      <InfoCircleOutlined className="summary-icon" />
+                    </div>
+                  </Popover>
+                )
+              })()
+            )}
+          </div>
+        </>
+      )}
 
       <Divider style={{ margin: '12px 0' }} />
 

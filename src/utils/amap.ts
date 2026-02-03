@@ -1,4 +1,4 @@
-import { POI, POIDetail, City } from '@/types'
+import { POI, POIDetail, City, MidPointMode } from '@/types'
 
 declare global {
   interface Window {
@@ -9,15 +9,26 @@ declare global {
 // 确保插件加载完成
 function loadPlugin(pluginName: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (window.AMap && window.AMap[pluginName]) {
+    // 提取插件的简短名称（去掉 AMap. 前缀）
+    const shortName = pluginName.replace('AMap.', '')
+
+    // 检查插件是否已加载
+    if (window.AMap && window.AMap[shortName]) {
       resolve()
       return
     }
-    window.AMap?.plugin([pluginName], () => {
-      if (window.AMap && window.AMap[pluginName]) {
+
+    // 确保使用完整的插件名称加载
+    const fullName = pluginName.startsWith('AMap.') ? pluginName : `AMap.${pluginName}`
+
+    window.AMap?.plugin([fullName], () => {
+      // 加载完成后再次检查
+      if (window.AMap && window.AMap[shortName]) {
         resolve()
       } else {
-        reject(new Error(`Plugin ${pluginName} failed to load`))
+        // 即使检查失败也尝试 resolve，因为有些插件加载后不会挂载到 AMap 对象上
+        console.warn(`Plugin ${fullName} loaded but check failed, trying anyway`)
+        resolve()
       }
     })
   })
@@ -331,4 +342,244 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
       }
     })
   })
+}
+
+/**
+ * 路径规划结果
+ */
+export interface RouteResult {
+  duration: number // 时间（秒）
+  distance: number // 距离（米）
+  path: Array<{ lng: number; lat: number }> // 路线点位
+}
+
+/**
+ * 驾车路径规划
+ */
+export async function getDrivingRoute(
+  startLng: number,
+  startLat: number,
+  endLng: number,
+  endLat: number
+): Promise<RouteResult | null> {
+  if (!window.AMap) {
+    console.error('AMap not loaded')
+    return null
+  }
+
+  // 检查 Driving 构造函数是否可用
+  if (!window.AMap.Driving) {
+    console.error('AMap.Driving not available, trying to load plugin')
+    try {
+      await loadPlugin('AMap.Driving')
+    } catch (e) {
+      console.error('Driving plugin failed to load:', e)
+      return null
+    }
+  }
+
+  // 再次检查
+  if (!window.AMap.Driving) {
+    console.error('AMap.Driving still not available after loading')
+    return null
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const driving = new window.AMap.Driving({
+        policy: 0, // 0: 最快捷模式
+      })
+
+      const start = new window.AMap.LngLat(startLng, startLat)
+      const end = new window.AMap.LngLat(endLng, endLat)
+
+      driving.search(start, end, (status: string, result: any) => {
+        if (status === 'complete' && result.routes?.length > 0) {
+          const route = result.routes[0]
+
+          // 提取路线点位
+          const path: Array<{ lng: number; lat: number }> = []
+          if (route.steps) {
+            route.steps.forEach((step: any) => {
+              if (step.path) {
+                step.path.forEach((point: any) => {
+                  path.push({ lng: point.lng, lat: point.lat })
+                })
+              }
+            })
+          }
+
+          resolve({
+            duration: route.time, // 秒
+            distance: route.distance, // 米
+            path,
+          })
+        } else {
+          console.warn('Driving search failed:', status, result?.info || result)
+          resolve(null)
+        }
+      })
+    } catch (e) {
+      console.error('Driving search error:', e)
+      resolve(null)
+    }
+  })
+}
+
+/**
+ * 公交路径规划
+ */
+export async function getTransitRoute(
+  startLng: number,
+  startLat: number,
+  endLng: number,
+  endLat: number,
+  city: string = '北京'
+): Promise<RouteResult | null> {
+  if (!window.AMap) {
+    console.error('AMap not loaded')
+    return null
+  }
+
+  // 检查 Transfer 构造函数是否可用
+  if (!window.AMap.Transfer) {
+    console.error('AMap.Transfer not available, trying to load plugin')
+    try {
+      await loadPlugin('AMap.Transfer')
+    } catch (e) {
+      console.error('Transfer plugin failed to load:', e)
+      return null
+    }
+  }
+
+  // 再次检查
+  if (!window.AMap.Transfer) {
+    console.error('AMap.Transfer still not available after loading')
+    return null
+  }
+
+  return new Promise((resolve) => {
+    try {
+      const transfer = new window.AMap.Transfer({
+        city: city,
+        policy: 0, // 0: 最快捷模式
+      })
+
+      const start = new window.AMap.LngLat(startLng, startLat)
+      const end = new window.AMap.LngLat(endLng, endLat)
+
+      transfer.search(start, end, (status: string, result: any) => {
+        if (status === 'complete' && result.plans?.length > 0) {
+          const plan = result.plans[0]
+
+          // 提取路线点位
+          const path: Array<{ lng: number; lat: number }> = []
+          if (plan.segments) {
+            plan.segments.forEach((segment: any) => {
+              // 步行段
+              if (segment.walking?.path) {
+                segment.walking.path.forEach((point: any) => {
+                  path.push({ lng: point.lng, lat: point.lat })
+                })
+              }
+              // 公交段
+              if (segment.transit?.path) {
+                segment.transit.path.forEach((point: any) => {
+                  path.push({ lng: point.lng, lat: point.lat })
+                })
+              }
+              // 地铁段可能在 transit.lines 中
+              if (segment.transit?.lines) {
+                segment.transit.lines.forEach((line: any) => {
+                  if (line.path) {
+                    line.path.forEach((point: any) => {
+                      path.push({ lng: point.lng, lat: point.lat })
+                    })
+                  }
+                })
+              }
+            })
+          }
+
+          resolve({
+            duration: plan.time, // 秒
+            distance: plan.distance, // 米
+            path,
+          })
+        } else {
+          console.warn('Transfer search failed:', status, result?.info || result)
+          resolve(null)
+        }
+      })
+    } catch (e) {
+      console.error('Transfer search error:', e)
+      resolve(null)
+    }
+  })
+}
+
+/**
+ * 批量路线结果
+ */
+export interface BatchRouteResult {
+  times: number[] // 通勤时间（分钟）
+  routes: Array<RouteResult | null> // 完整路线数据
+}
+
+/**
+ * 批量获取路径规划时间和路线
+ */
+export async function getBatchRouteTimes(
+  points: Array<{ lng: number; lat: number }>,
+  targetLng: number,
+  targetLat: number,
+  mode: MidPointMode,
+  city?: string
+): Promise<BatchRouteResult> {
+  if (mode === 'straight') {
+    // 直线距离模式，返回基于距离估算的时间（假设平均速度 30km/h）
+    const times = points.map((point) => {
+      const distance = window.AMap?.GeometryUtil?.distance(
+        new window.AMap.LngLat(point.lng, point.lat),
+        new window.AMap.LngLat(targetLng, targetLat)
+      ) || 0
+      return Math.round(distance / 500) // 500米/分钟 ≈ 30km/h
+    })
+    // 直线模式不返回路线
+    return { times, routes: points.map(() => null) }
+  }
+
+  console.log(`开始批量计算 ${mode} 路线，共 ${points.length} 个点`)
+
+  const results = await Promise.all(
+    points.map(async (point, index) => {
+      try {
+        let route: RouteResult | null = null
+
+        if (mode === 'driving') {
+          route = await getDrivingRoute(point.lng, point.lat, targetLng, targetLat)
+        } else if (mode === 'transit') {
+          route = await getTransitRoute(point.lng, point.lat, targetLng, targetLat, city || '北京')
+        }
+
+        if (route) {
+          const minutes = Math.round(route.duration / 60)
+          console.log(`点 ${index + 1}: ${minutes} 分钟, 路线点数: ${route.path.length}`)
+          return { time: minutes, route }
+        } else {
+          console.warn(`点 ${index + 1}: 路线规划失败`)
+          return { time: 999, route: null }
+        }
+      } catch (e) {
+        console.error(`点 ${index + 1}: 路线规划异常`, e)
+        return { time: 999, route: null }
+      }
+    })
+  )
+
+  const times = results.map(r => r.time)
+  const routes = results.map(r => r.route)
+
+  console.log('批量路线计算结果:', times)
+  return { times, routes }
 }

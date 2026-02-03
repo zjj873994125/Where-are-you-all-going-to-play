@@ -114,15 +114,39 @@
 
 /* 地点面板 */
 .location-panel-wrapper {
-  /* height: 80%; */
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 100px);
 }
 
-.location-panel-wrapper.expanded > *:not(.panel-header) {
+.location-panel-wrapper.expanded {
+  max-height: calc(100vh - 100px);
+}
+
+.location-panel-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  padding: 12px;
+  max-height: calc(100vh - 160px);
+}
+
+/* 自定义滚动条 */
+.location-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.location-panel-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.location-panel-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.location-panel-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 /* POI面板 */
@@ -255,6 +279,11 @@
     max-height: 55vh;
     max-width: calc(100vw - 24px);
     border-radius: 16px;
+  }
+
+  .location-panel-wrapper .location-panel-content {
+    max-height: calc(55vh - 50px);
+    overflow-y: auto;
   }
 
   .location-panel-wrapper.collapsed {
@@ -968,4 +997,107 @@
   .changelog-list li {
     font-size: 12px;
   }
+}
+
+/* 通勤时间汇总样式 */
+.travel-time-summary {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+/* 精简版通勤时间汇总 */
+.travel-time-summary-compact {
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: #f0f4ff;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.travel-time-summary-compact.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.travel-time-summary-compact.clickable:hover {
+  background: #e0e7ff;
+}
+
+.travel-time-summary-compact .summary-text strong {
+  color: #1f2937;
+}
+
+.travel-time-summary-compact .summary-icon {
+  color: #667eea;
+  font-size: 14px;
+}
+
+.travel-time-summary-compact.error {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* Popover 内的通勤时间列表 */
+.travel-time-popover {
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.travel-time-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.travel-time-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.travel-time-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.travel-time-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #4b5563;
+}
+
+.travel-time-value {
+  color: #2563eb;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.travel-time-avg {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.travel-time-avg strong {
+  color: #1f2937;
 }
