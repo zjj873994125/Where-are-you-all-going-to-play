@@ -13,7 +13,7 @@ import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 // 当前版本号
-const APP_VERSION = '1.3.0'
+const APP_VERSION = '1.3.1'
 const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
 const SHARE_STATE_VERSION = 1
 const VALID_SEARCH_RADIUS: SearchRadius[] = [500, 1000, 2000, 3000]
@@ -902,13 +902,11 @@ function App() {
           <div className="welcome-section">
             <h4>📢 版本更新 v{APP_VERSION}</h4>
             <ul className="changelog-list">
-              <li>新增会话分享：一键复制链接，打开即可恢复当前点位和模式</li>
-              <li>新增“我的位置”定位功能，并支持快速添加到地点列表</li>
-              <li>我的位置地图标记升级为定位针样式，带呼吸动画，更易识别</li>
-              <li>修复导航模式跳转问题，按选择的驾车/公交/步行模式打开</li>
-              <li>移动端优先唤起高德 App，失败自动回退网页导航</li>
-              <li>路线规划稳定性优化：分批请求、超时保护、失败提示更明确</li>
-              <li>直线模式支持显示每个点到中点的距离</li>
+              <li>POI 详情新增营业状态、人均消费、评分展示</li>
+              <li>支持解析并显示 biz_ext 的 open_time、opentime2、cost、rating 字段</li>
+              <li>营业时间支持自动判断：营业中 / 休息中 / 状态未知</li>
+              <li>修复部分 POI 详情字段有值但前端显示为空的问题（兼容 biz_ext / bizExt 结构）</li>
+              <li>“我的位置”标记升级为定位针样式，视觉更明显</li>
             </ul>
           </div>
         </div>

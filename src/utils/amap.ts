@@ -323,11 +323,47 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
     placeSearch.getDetails(poiId, (status: string, result: any) => {
       if (status === 'complete' && result.poiList?.pois?.length > 0) {
         const poi = result.poiList.pois[0]
+        const rawBizExt = poi.biz_ext ?? poi.bizExt ?? {}
+        let bizExt: any = rawBizExt
+        if (typeof rawBizExt === 'string') {
+          try {
+            bizExt = JSON.parse(rawBizExt)
+          } catch {
+            bizExt = {}
+          }
+        }
+
+        const parseNumeric = (value: unknown): number | undefined => {
+          if (typeof value === 'number' && Number.isFinite(value)) return value
+          if (typeof value === 'string') {
+            const n = parseFloat(value)
+            return Number.isFinite(n) ? n : undefined
+          }
+          return undefined
+        }
+
         // photos 字段可能是数组、字符串或 undefined，需要做类型检查
         let photos: { url: string }[] = []
         if (Array.isArray(poi.photos)) {
           photos = poi.photos.map((p: any) => ({ url: p.url }))
         }
+        const rating = parseNumeric(bizExt.rating ?? bizExt.star ?? poi.rating)
+        const averageCost = parseNumeric(
+          bizExt.cost ?? bizExt.avg_cost ?? bizExt.average_cost ?? poi.cost
+        )
+        const openTimeRange =
+          bizExt.open_time ??
+          bizExt.openTime ??
+          bizExt.opentime ??
+          poi.open_time ??
+          poi.opentime ??
+          undefined
+        const openTimeDescription =
+          bizExt.opentime2 ??
+          bizExt.open_time2 ??
+          bizExt.openTime2 ??
+          poi.opentime2 ??
+          undefined
         const detail: POIDetail = {
           id: poi.id,
           name: poi.name,
@@ -338,8 +374,11 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
           type: poi.type,
           tel: poi.tel || undefined,
           photos,
-          rating: poi.biz_ext?.rating ? parseFloat(poi.biz_ext.rating) : undefined,
-          openingHours: poi.biz_ext?.opentime || undefined,
+          rating,
+          averageCost,
+          openTimeRange,
+          openTimeDescription,
+          openingHours: openTimeDescription || openTimeRange || poi.business_hours || undefined,
           website: poi.website || undefined,
           cityname: poi.cityname || undefined,
           adname: poi.adname || undefined,

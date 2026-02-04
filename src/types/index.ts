@@ -25,6 +25,9 @@ export interface POIDetail extends POI {
   tel?: string              // 电话
   photos?: { url: string }[] // 图片数组
   openingHours?: string     // 营业时间
+  openTimeRange?: string    // 营业时段（如 07:15-22:30）
+  openTimeDescription?: string // 营业时段描述（如 周一至周日 07:15-22:30）
+  averageCost?: number      // 人均消费（元）
   website?: string          // 网站
   cityname?: string         // 城市
   adname?: string           // 区域

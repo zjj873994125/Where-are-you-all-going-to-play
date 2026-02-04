@@ -570,7 +570,41 @@
 .detail-card-type {
   font-size: 12px;
   color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.detail-card-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 10px;
+}
+
+.detail-meta-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  background: #eef2f7;
+}
+
+.detail-meta-badge.status-open {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.detail-meta-badge.status-closed {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.detail-meta-badge.status-unknown {
+  color: #475569;
+  background: #e2e8f0;
 }
 
 .detail-card-info {
@@ -600,6 +634,13 @@
   color: #4b5563;
   line-height: 1.4;
   word-break: break-all;
+}
+
+.detail-info-subtext {
+  display: block;
+  margin-top: 2px;
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .detail-info-link {
