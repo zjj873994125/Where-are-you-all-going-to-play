@@ -326,27 +326,38 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
 
     points.forEach((point, index) => {
       const letter = String.fromCharCode(65 + index)
-      const markerContent = `
-        <div style="
-          width: 32px;
-          height: 32px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border: 2px solid white;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 14px;
-          font-weight: 700;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
-        ">${letter}</div>
-      `
+      const isMyLocation = !!point.isMyLocation
+      const markerContent = isMyLocation
+        ? `
+          <div class="my-location-marker">
+            <div class="my-location-marker__pulse"></div>
+            <div class="my-location-marker__pin">
+              <div class="my-location-marker__center"></div>
+            </div>
+          </div>
+        `
+        : `
+          <div style="
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 2px solid white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+          ">${letter}</div>
+        `
       const marker = new window.AMap.Marker({
         position: [point.lng, point.lat],
-        title: point.name,
+        title: isMyLocation ? `${point.name}（当前位置）` : point.name,
         content: markerContent,
-        offset: new window.AMap.Pixel(-16, -16),
+        offset: isMyLocation ? new window.AMap.Pixel(-14, -38) : new window.AMap.Pixel(-16, -16),
+        zIndex: isMyLocation ? 140 : 100,
       })
       marker.setMap(map)
       markersRef.current.push(marker)

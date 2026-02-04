@@ -5,6 +5,7 @@ export interface LocationPoint {
   lng: number
   lat: number
   travelTime?: number // 到中点的通勤时间（分钟）
+  isMyLocation?: boolean // 是否为“我的位置”点
 }
 
 export interface MidPoint extends LocationPoint {}

@@ -560,6 +560,52 @@ export interface BatchRouteResult {
   routes: Array<RouteResult | null> // 完整路线数据
 }
 
+export interface CurrentLocationResult {
+  lng: number
+  lat: number
+  address?: string
+  city?: string
+}
+
+/**
+ * 获取当前精确位置（经纬度）
+ */
+export async function getCurrentLocation(): Promise<CurrentLocationResult | null> {
+  if (!window.AMap) {
+    console.error('AMap not loaded')
+    return null
+  }
+
+  try {
+    await loadPlugin('Geolocation')
+  } catch (e) {
+    console.error('Geolocation plugin failed to load:', e)
+    return null
+  }
+
+  return new Promise((resolve) => {
+    const geolocation = new window.AMap.Geolocation({
+      enableHighAccuracy: true,
+      timeout: 8000,
+      convert: true,
+    })
+
+    geolocation.getCurrentPosition((status: string, result: any) => {
+      if (status === 'complete' && result?.position) {
+        resolve({
+          lng: result.position.lng,
+          lat: result.position.lat,
+          address: result.formattedAddress || result.addressComponent?.street || '',
+          city: result.addressComponent?.city || result.addressComponent?.province || '',
+        })
+      } else {
+        console.error('getCurrentPosition failed:', status, result)
+        resolve(null)
+      }
+    })
+  })
+}
+
 /**
  * 批量获取路径规划时间和路线
  */

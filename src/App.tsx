@@ -7,14 +7,124 @@ import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
 import POIDetailCard from './components/POIDetailCard'
 import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City, MidPointMode } from './types'
-import { calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
-import { searchPOI, getCurrentCity, getPOIDetail, RouteResult } from './utils/amap'
+import { calculateDistance, calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
+import { searchPOI, getCurrentCity, getCurrentLocation, getPOIDetail, RouteResult } from './utils/amap'
 import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 // 当前版本号
-const APP_VERSION = '1.2.0'
+const APP_VERSION = '1.3.0'
 const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
+const SHARE_STATE_VERSION = 1
+const VALID_SEARCH_RADIUS: SearchRadius[] = [500, 1000, 2000, 3000]
+const VALID_MIDPOINT_MODES: MidPointMode[] = ['straight', 'driving', 'transit']
+const VALID_SEARCH_TYPES: SearchType[] = [
+  '餐厅',
+  '咖啡厅',
+  '奶茶店',
+  '商场',
+  '酒吧',
+  '酒店',
+  '医院',
+  '地铁站',
+  '公交站',
+  '火车站',
+  'custom',
+]
+
+interface ShareStateV1 {
+  v: number
+  points: LocationPoint[]
+  city: City | null
+  searchRadius: SearchRadius
+  midPointMode: MidPointMode
+  activeSearchType: SearchType | null
+  lastSearchKeyword: string
+}
+
+function encodeBase64Utf8(input: string): string {
+  return btoa(encodeURIComponent(input).replace(/%([0-9A-F]{2})/g, (_match, p1) =>
+    String.fromCharCode(parseInt(p1, 16))
+  ))
+}
+
+function decodeBase64Utf8(input: string): string {
+  return decodeURIComponent(Array.prototype.map.call(atob(input), (char: string) =>
+    `%${`00${char.charCodeAt(0).toString(16)}`.slice(-2)}`
+  ).join(''))
+}
+
+function parseSharedState(raw: string): ShareStateV1 | null {
+  try {
+    const decoded = decodeBase64Utf8(raw)
+    const parsed = JSON.parse(decoded)
+    if (!parsed || parsed.v !== SHARE_STATE_VERSION) return null
+
+    const points: LocationPoint[] = Array.isArray(parsed.points)
+      ? parsed.points
+          .filter((point: any) =>
+            point &&
+            typeof point.lng === 'number' &&
+            typeof point.lat === 'number' &&
+            point.lng >= -180 && point.lng <= 180 &&
+            point.lat >= -90 && point.lat <= 90
+          )
+          .map((point: any, index: number) => ({
+            id: typeof point.id === 'string' && point.id ? point.id : `shared_${Date.now()}_${index}`,
+            name: typeof point.name === 'string' && point.name ? point.name : `地点${index + 1}`,
+            address: typeof point.address === 'string' ? point.address : undefined,
+            lng: point.lng,
+            lat: point.lat,
+            isMyLocation: !!point.isMyLocation,
+          }))
+      : []
+
+    const city: City | null = parsed.city && typeof parsed.city.name === 'string' && typeof parsed.city.adcode === 'string'
+      ? {
+          name: parsed.city.name,
+          adcode: parsed.city.adcode,
+          center: parsed.city.center && typeof parsed.city.center.lng === 'number' && typeof parsed.city.center.lat === 'number'
+            ? { lng: parsed.city.center.lng, lat: parsed.city.center.lat }
+            : undefined,
+        }
+      : null
+
+    const searchRadius: SearchRadius = VALID_SEARCH_RADIUS.includes(parsed.searchRadius)
+      ? parsed.searchRadius
+      : 1000
+
+    const midPointMode: MidPointMode = VALID_MIDPOINT_MODES.includes(parsed.midPointMode)
+      ? parsed.midPointMode
+      : 'straight'
+
+    const activeSearchType: SearchType | null = parsed.activeSearchType && VALID_SEARCH_TYPES.includes(parsed.activeSearchType)
+      ? parsed.activeSearchType
+      : null
+
+    const lastSearchKeyword = typeof parsed.lastSearchKeyword === 'string'
+      ? parsed.lastSearchKeyword
+      : ''
+
+    return {
+      v: SHARE_STATE_VERSION,
+      points: points.slice(0, 20),
+      city,
+      searchRadius,
+      midPointMode,
+      activeSearchType,
+      lastSearchKeyword,
+    }
+  } catch {
+    return null
+  }
+}
+
+function createShareUrl(state: ShareStateV1): string {
+  const payload = encodeBase64Utf8(JSON.stringify(state))
+  const params = new URLSearchParams(window.location.search)
+  params.set('share', payload)
+  return `${window.location.origin}${window.location.pathname}?${params.toString()}`
+}
 
 function App() {
   const [currentCity, setCurrentCity] = useState<City | null>(null)
@@ -37,6 +147,7 @@ function App() {
   const [travelTimes, setTravelTimes] = useState<number[]>([])
   const [travelRoutes, setTravelRoutes] = useState<Array<RouteResult | null>>([])
   const [isCalculatingMidPoint, setIsCalculatingMidPoint] = useState(false)
+  const [isLocatingMe, setIsLocatingMe] = useState(false)
 
   // 使用说明弹窗
   const [showWelcomeModal, setShowWelcomeModal] = useState(false)
@@ -58,6 +169,79 @@ function App() {
   // 用于追踪定位是否已完成，避免 StrictMode 下重复执行
   const hasInitializedRef = useRef(false)
   const hasCheckedWelcomeRef = useRef(false)
+  const hasRestoredShareRef = useRef(false)
+
+  // 从分享链接恢复会话
+  useEffect(() => {
+    if (hasRestoredShareRef.current) return
+
+    const sharePayload = new URLSearchParams(window.location.search).get('share')
+    if (!sharePayload) return
+
+    const sharedState = parseSharedState(sharePayload)
+    if (!sharedState) {
+      message.warning('分享链接无效或已损坏')
+      return
+    }
+
+    hasRestoredShareRef.current = true
+    hasInitializedRef.current = true // 跳过自动定位，避免覆盖分享状态
+
+    setCurrentCity(sharedState.city)
+    setPoints(sharedState.points)
+    setSearchRadius(sharedState.searchRadius)
+    setMidPointMode(sharedState.midPointMode)
+    setActiveSearchType(sharedState.activeSearchType)
+    setLastSearchKeyword(sharedState.lastSearchKeyword)
+    setPois([])
+    setSelectedPOI(null)
+    setPoiDetail(null)
+
+    let cancelled = false
+    const restoreMidPoint = async () => {
+      if (sharedState.points.length < 2) {
+        if (!cancelled) {
+          setMidPoint(null)
+          setTravelTimes([])
+          setTravelRoutes([])
+        }
+        return
+      }
+
+      if (sharedState.midPointMode === 'straight') {
+        const mid = calculateMidPoint(sharedState.points)
+        if (!cancelled) {
+          setMidPoint(mid)
+          setTravelTimes([])
+          setTravelRoutes([])
+        }
+        return
+      }
+
+      if (!cancelled) setIsCalculatingMidPoint(true)
+      try {
+        const result = await calculateWeightedMidPoint(
+          sharedState.points,
+          sharedState.midPointMode,
+          sharedState.city?.name
+        )
+        if (!cancelled && result) {
+          setMidPoint(result.midPoint)
+          setTravelTimes(result.travelTimes)
+          setTravelRoutes(result.routes)
+        }
+      } finally {
+        if (!cancelled) setIsCalculatingMidPoint(false)
+      }
+    }
+
+    restoreMidPoint()
+    message.success('已恢复分享会话')
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // 检查是否显示使用说明弹窗
   useEffect(() => {
@@ -347,6 +531,42 @@ function App() {
     handleAddPoint(point)
   }, [points.length, handleAddPoint])
 
+  const handleLocateMe = useCallback(async () => {
+    if (isLocatingMe) return
+
+    setIsLocatingMe(true)
+    try {
+      const location = await getCurrentLocation()
+      if (!location) {
+        message.error('定位失败，请检查定位权限后重试')
+        return
+      }
+
+      const existingPoint = points.find((point) => (
+        calculateDistance(point.lng, point.lat, location.lng, location.lat) < 30
+      ))
+      if (existingPoint) {
+        message.info('我的位置已在列表中')
+        setFocusPoint(existingPoint)
+        return
+      }
+
+      handleAddPoint({
+        id: Date.now().toString(),
+        name: '我的位置',
+        address: location.address || '当前位置',
+        lng: location.lng,
+        lat: location.lat,
+        isMyLocation: true,
+      })
+    } catch (error) {
+      console.error('定位我的位置失败:', error)
+      message.error('定位失败，请稍后重试')
+    } finally {
+      setIsLocatingMe(false)
+    }
+  }, [isLocatingMe, points, handleAddPoint])
+
   const handleSearch = useCallback(async (type: SearchType, keyword?: string, radius: SearchRadius = 500) => {
     if (!midPoint) return
 
@@ -432,6 +652,31 @@ function App() {
   const togglePanel = useCallback((panel: 'location' | 'poi') => {
     setPanelStates(prev => ({ ...prev, [panel]: !prev[panel] }))
   }, [])
+
+  const handleShareSession = useCallback(async () => {
+    if (points.length === 0) {
+      message.info('请先添加至少一个地点再分享')
+      return
+    }
+
+    const shareUrl = createShareUrl({
+      v: SHARE_STATE_VERSION,
+      points,
+      city: currentCity,
+      searchRadius,
+      midPointMode,
+      activeSearchType,
+      lastSearchKeyword,
+    })
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      message.success('分享链接已复制')
+    } catch {
+      // clipboard 不可用时回退为 prompt
+      window.prompt('复制分享链接', shareUrl)
+    }
+  }, [points, currentCity, searchRadius, midPointMode, activeSearchType, lastSearchKeyword])
 
   return (
     <div className="app-container">
@@ -521,6 +766,14 @@ function App() {
         >
           🛰️ 卫星
         </button>
+        <button
+          className={`toolbar-btn ${isLocatingMe ? 'active' : ''}`}
+          onClick={(e) => { e.stopPropagation(); handleLocateMe() }}
+          title="定位我的位置"
+          disabled={isLocatingMe}
+        >
+          {isLocatingMe ? '📍 定位中' : '📍 定位'}
+        </button>
         {!isMobile && (
           <button
             className={`toolbar-btn ${isRanging ? 'active' : ''}`}
@@ -530,6 +783,13 @@ function App() {
             📏 测距
           </button>
         )}
+        <button
+          className="toolbar-btn"
+          onClick={(e) => { e.stopPropagation(); handleShareSession() }}
+          title="分享当前会话"
+        >
+          🔗 分享
+        </button>
         <button
           className="toolbar-btn"
           onClick={(e) => { e.stopPropagation(); setShowWelcomeModal(true) }}
@@ -642,10 +902,13 @@ function App() {
           <div className="welcome-section">
             <h4>📢 版本更新 v{APP_VERSION}</h4>
             <ul className="changelog-list">
-              <li>新增中点计算模式：支持直线距离、驾车时间、公交时间</li>
-              <li>驾车/公交模式会根据通勤时间智能优化中点位置</li>
-              <li>地点列表显示每个人到中点的预估通勤时间</li>
-              <li>新增搜索防抖，优化请求性能</li>
+              <li>新增会话分享：一键复制链接，打开即可恢复当前点位和模式</li>
+              <li>新增“我的位置”定位功能，并支持快速添加到地点列表</li>
+              <li>我的位置地图标记升级为定位针样式，带呼吸动画，更易识别</li>
+              <li>修复导航模式跳转问题，按选择的驾车/公交/步行模式打开</li>
+              <li>移动端优先唤起高德 App，失败自动回退网页导航</li>
+              <li>路线规划稳定性优化：分批请求、超时保护、失败提示更明确</li>
+              <li>直线模式支持显示每个点到中点的距离</li>
             </ul>
           </div>
         </div>
