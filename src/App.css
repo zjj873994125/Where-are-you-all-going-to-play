@@ -811,13 +811,33 @@
   min-width: 0;
 }
 
-.location-item-name {
+.location-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.location-item-name-text {
   font-size: 14px;
   font-weight: 500;
   color: #1f2937;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.location-item-metrics {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.location-item-metrics .ant-tag {
+  margin-right: 0;
 }
 
 .location-item-address {

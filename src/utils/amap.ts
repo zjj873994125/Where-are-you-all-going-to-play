@@ -6,6 +6,16 @@ declare global {
   }
 }
 
+const ROUTE_SEARCH_TIMEOUT_MS = 12000
+const ROUTE_BATCH_SIZE = 2
+const ROUTE_BATCH_DELAY_MS = 120
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
 // 确保插件加载完成
 function loadPlugin(pluginName: string): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -386,6 +396,18 @@ export async function getDrivingRoute(
 
   return new Promise((resolve) => {
     try {
+      let settled = false
+      const finish = (route: RouteResult | null) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeoutId)
+        resolve(route)
+      }
+      const timeoutId = setTimeout(() => {
+        console.warn('Driving search timeout')
+        finish(null)
+      }, ROUTE_SEARCH_TIMEOUT_MS)
+
       const driving = new window.AMap.Driving({
         policy: 0, // 0: 最快捷模式
       })
@@ -409,14 +431,14 @@ export async function getDrivingRoute(
             })
           }
 
-          resolve({
+          finish({
             duration: route.time, // 秒
             distance: route.distance, // 米
             path,
           })
         } else {
           console.warn('Driving search failed:', status, result?.info || result)
-          resolve(null)
+          finish(null)
         }
       })
     } catch (e) {
@@ -460,6 +482,18 @@ export async function getTransitRoute(
 
   return new Promise((resolve) => {
     try {
+      let settled = false
+      const finish = (route: RouteResult | null) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeoutId)
+        resolve(route)
+      }
+      const timeoutId = setTimeout(() => {
+        console.warn('Transfer search timeout')
+        finish(null)
+      }, ROUTE_SEARCH_TIMEOUT_MS)
+
       const transfer = new window.AMap.Transfer({
         city: city,
         policy: 0, // 0: 最快捷模式
@@ -501,14 +535,14 @@ export async function getTransitRoute(
             })
           }
 
-          resolve({
+          finish({
             duration: plan.time, // 秒
             distance: plan.distance, // 米
             path,
           })
         } else {
           console.warn('Transfer search failed:', status, result?.info || result)
-          resolve(null)
+          finish(null)
         }
       })
     } catch (e) {
@@ -551,31 +585,43 @@ export async function getBatchRouteTimes(
 
   console.log(`开始批量计算 ${mode} 路线，共 ${points.length} 个点`)
 
-  const results = await Promise.all(
-    points.map(async (point, index) => {
-      try {
-        let route: RouteResult | null = null
+  const results: Array<{ time: number; route: RouteResult | null }> = []
+  for (let start = 0; start < points.length; start += ROUTE_BATCH_SIZE) {
+    const batch = points.slice(start, start + ROUTE_BATCH_SIZE)
 
-        if (mode === 'driving') {
-          route = await getDrivingRoute(point.lng, point.lat, targetLng, targetLat)
-        } else if (mode === 'transit') {
-          route = await getTransitRoute(point.lng, point.lat, targetLng, targetLat, city || '北京')
-        }
+    const batchResults = await Promise.all(
+      batch.map(async (point, batchIndex) => {
+        const index = start + batchIndex
+        try {
+          let route: RouteResult | null = null
 
-        if (route) {
-          const minutes = Math.round(route.duration / 60)
-          console.log(`点 ${index + 1}: ${minutes} 分钟, 路线点数: ${route.path.length}`)
-          return { time: minutes, route }
-        } else {
-          console.warn(`点 ${index + 1}: 路线规划失败`)
+          if (mode === 'driving') {
+            route = await getDrivingRoute(point.lng, point.lat, targetLng, targetLat)
+          } else if (mode === 'transit') {
+            route = await getTransitRoute(point.lng, point.lat, targetLng, targetLat, city || '北京')
+          }
+
+          if (route) {
+            const minutes = Math.round(route.duration / 60)
+            console.log(`点 ${index + 1}: ${minutes} 分钟, 路线点数: ${route.path.length}`)
+            return { time: minutes, route }
+          } else {
+            console.warn(`点 ${index + 1}: 路线规划失败`)
+            return { time: 999, route: null }
+          }
+        } catch (e) {
+          console.error(`点 ${index + 1}: 路线规划异常`, e)
           return { time: 999, route: null }
         }
-      } catch (e) {
-        console.error(`点 ${index + 1}: 路线规划异常`, e)
-        return { time: 999, route: null }
-      }
-    })
-  )
+      })
+    )
+
+    results.push(...batchResults)
+
+    if (start + ROUTE_BATCH_SIZE < points.length) {
+      await sleep(ROUTE_BATCH_DELAY_MS)
+    }
+  }
 
   const times = results.map(r => r.time)
   const routes = results.map(r => r.route)

@@ -3,6 +3,7 @@ import { List, Typography, Skeleton, Empty } from 'antd'
 import { CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
 import { POI, NavMode } from '@/types'
 import { generateAmapNavUrl } from '@/utils/mapCalc'
+import Icon from './Icon'
 
 const { Text } = Typography
 
@@ -14,9 +15,9 @@ interface POIListProps {
 }
 
 const navModeConfig = [
-  { mode: 'drive' as NavMode, icon: <CarOutlined />, label: '驾车' },
-  { mode: 'walk' as NavMode, icon: <WifiOutlined />, label: '步行' },
-  { mode: 'bus' as NavMode, icon: <BulbOutlined />, label: '公交' },
+  { mode: 'drive' as NavMode, icon: <Icon type="icon-kaiche" />, label: '驾车' },
+  { mode: 'walk' as NavMode, icon: <Icon type="icon-buxing" />, label: '步行' },
+  { mode: 'bus' as NavMode, icon: <Icon type="icon-gongjiaoche" />, label: '公交' },
 ]
 
 const getPOIIcon = (name: string) => {

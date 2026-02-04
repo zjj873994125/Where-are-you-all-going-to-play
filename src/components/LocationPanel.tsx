@@ -43,7 +43,8 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { debounce } from 'lodash'
 import Icon from './Icon'
-import { LocationPoint, SearchType, SearchRadius, City, MidPointMode } from '@/types'
+import { LocationPoint, MidPoint, SearchType, SearchRadius, City, MidPointMode } from '@/types'
+import { calculateDistance } from '@/utils/mapCalc'
 import { searchByKeyword } from '@/utils/amap'
 import { FavoritePoint } from '@/hooks/useFavorites'
 
@@ -68,6 +69,7 @@ interface LocationPanelProps {
   onAddFromFavorite: (point: LocationPoint) => void
   isFavorite: (point: LocationPoint) => boolean
   // 中点计算模式相关
+  midPoint?: MidPoint | null
   midPointMode?: MidPointMode
   onMidPointModeChange?: (mode: MidPointMode) => void
   travelTimes?: number[]
@@ -117,10 +119,30 @@ interface SortableLocationItemProps {
   onFavorite?: (point: LocationPoint) => void
   isFavorited?: boolean
   travelTime?: number // 通勤时间（分钟）
+  straightDistance?: number // 直线距离（米）
   showTravelTime?: boolean
+  showStraightDistance?: boolean
 }
 
-function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, isFavorited, travelTime, showTravelTime }: SortableLocationItemProps) {
+function formatDistance(distanceInMeters: number): string {
+  if (distanceInMeters >= 1000) {
+    return `${(distanceInMeters / 1000).toFixed(1)}km`
+  }
+  return `${Math.round(distanceInMeters)}m`
+}
+
+function SortableLocationItem({
+  point,
+  index,
+  onRemove,
+  onLocate,
+  onFavorite,
+  isFavorited,
+  travelTime,
+  straightDistance,
+  showTravelTime,
+  showStraightDistance,
+}: SortableLocationItemProps) {
   const {
     attributes,
     listeners,
@@ -158,12 +180,23 @@ function SortableLocationItem({ point, index, onRemove, onLocate, onFavorite, is
           {getLocationLabel(index)}
         </div>
         <div className="location-item-info">
-          <div className="location-item-name">
-            {point.name}
-            {showTravelTime && travelTime !== undefined && travelTime < 999 && (
-              <Tag color="blue" style={{ marginLeft: 6, fontSize: 11 }}>
-                {travelTime}分钟
-              </Tag>
+          <div className="location-item-name-row">
+            <span className="location-item-name-text" title={point.name}>
+              {point.name}
+            </span>
+            {(showTravelTime || showStraightDistance) && (
+              <div className="location-item-metrics">
+                {showTravelTime && travelTime !== undefined && travelTime < 999 && (
+                  <Tag color="blue" style={{ fontSize: 11 }}>
+                    {travelTime}分钟
+                  </Tag>
+                )}
+                {showStraightDistance && straightDistance !== undefined && (
+                  <Tag color="geekblue" style={{ fontSize: 11 }}>
+                    {formatDistance(straightDistance)}
+                  </Tag>
+                )}
+              </div>
             )}
           </div>
           <div className="location-item-address">
@@ -212,6 +245,7 @@ export default function LocationPanel({
   onRemoveFavorite,
   onAddFromFavorite,
   isFavorite,
+  midPoint,
   midPointMode = 'straight',
   onMidPointModeChange,
   travelTimes = [],
@@ -256,6 +290,14 @@ export default function LocationPanel({
     ),
     data: item
   }))
+
+  const straightDistances = useMemo(() => {
+    if (midPointMode !== 'straight' || !midPoint) return []
+
+    return points.map((point) =>
+      calculateDistance(point.lng, point.lat, midPoint.lng, midPoint.lat)
+    )
+  }, [midPointMode, midPoint?.lng, midPoint?.lat, points])
 
   // 地点搜索防抖
   const debouncedSearch = useMemo(
@@ -394,6 +436,8 @@ export default function LocationPanel({
                     isFavorited={isFavorite(point)}
                     travelTime={travelTimes[index]}
                     showTravelTime={midPointMode !== 'straight' && travelTimes.length > 0}
+                    straightDistance={straightDistances[index]}
+                    showStraightDistance={midPointMode === 'straight' && straightDistances.length > 0}
                   />
                 ))}
               </div>

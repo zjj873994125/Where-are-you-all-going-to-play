@@ -22,6 +22,7 @@ export interface WeightedMidPointResult {
   midPoint: MidPoint
   travelTimes: number[] // 每个点到中点的通勤时间（分钟）
   routes: Array<RouteResult | null> // 每个点到中点的路线
+  usedStraightFallback?: boolean // 是否回退到直线时间估算
 }
 
 /**
@@ -65,7 +66,12 @@ export async function calculateWeightedMidPoint(
       console.warn('所有路线规划都失败了，使用直线距离模式作为备选')
       // 回退到直线距离模式的时间估算
       const fallbackResult = await getBatchRouteTimes(points, currentMid.lng, currentMid.lat, 'straight', city)
-      return { midPoint: currentMid, travelTimes: fallbackResult.times, routes: [] }
+      return {
+        midPoint: currentMid,
+        travelTimes: fallbackResult.times,
+        routes: points.map(() => null),
+        usedStraightFallback: true,
+      }
     }
 
     // 计算平均时间（只使用有效的时间）
@@ -96,7 +102,12 @@ export async function calculateWeightedMidPoint(
   // 最后一次获取通勤时间和路线
   const finalResult = await getBatchRouteTimes(points, currentMid.lng, currentMid.lat, mode, city)
 
-  return { midPoint: currentMid, travelTimes: finalResult.times, routes: finalResult.routes }
+  return {
+    midPoint: currentMid,
+    travelTimes: finalResult.times,
+    routes: finalResult.routes,
+    usedStraightFallback: false,
+  }
 }
 
 export function calculateDistance(
@@ -124,6 +135,12 @@ export function generateAmapNavUrl(
   destName: string,
   mode: 'drive' | 'walk' | 'bus' = 'drive'
 ): string {
-  const modeMap = { drive: 0, walk: 2, bus: 1 }
-  return `https://uri.amap.com/navigation?to=${destLng.toFixed(6)},${destLat.toFixed(6)},${encodeURIComponent(destName)}&mode=${modeMap[mode]}&src=MeetPoint`
+  const typeMap = { drive: 'car', walk: 'walk', bus: 'bus' } as const
+  const params = new URLSearchParams({
+    type: typeMap[mode],
+    'to[lnglat]': `${destLng.toFixed(6)},${destLat.toFixed(6)}`,
+    'to[name]': destName,
+    src: 'MeetPoint',
+  })
+  return `https://ditu.amap.com/dir?${params.toString()}`
 }

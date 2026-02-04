@@ -204,7 +204,9 @@ function App() {
         const validRoutes = result.routes.filter(r => r && r.path && r.path.length >= 2).length
         const failedTimes = result.travelTimes.filter(t => t >= 999).length
 
-        if (totalRoutes > 0 && validRoutes === 0 && failedTimes === totalRoutes) {
+        if (result.usedStraightFallback) {
+          message.warning('路线规划服务不可用，已回退为直线时间估算（不绘制路线）')
+        } else if (totalRoutes > 0 && validRoutes === 0) {
           message.warning('所有路线规划失败，请检查地点是否合理')
         } else if (failedTimes > 0) {
           message.warning(`${failedTimes}条路线规划失败，部分路线无法显示`)
@@ -501,6 +503,7 @@ function App() {
               onRemoveFavorite={handleRemoveFavorite}
               onAddFromFavorite={handleAddFromFavorite}
               isFavorite={isFavorite}
+              midPoint={midPoint}
               midPointMode={midPointMode}
               onMidPointModeChange={handleMidPointModeChange}
               travelTimes={travelTimes}
