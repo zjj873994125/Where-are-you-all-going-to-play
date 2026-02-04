@@ -1,4 +1,4 @@
-import { LocationPoint, MidPoint, MidPointMode } from '@/types'
+import { LocationPoint, MidPoint, MidPointMode, NavMode } from '@/types'
 import { getBatchRouteTimes, RouteResult } from './amap'
 
 export function calculateMidPoint(points: LocationPoint[]): MidPoint | null {
@@ -129,18 +129,51 @@ export function calculateDistance(
   return R * c
 }
 
-export function generateAmapNavUrl(
+export interface AmapNavUrls {
+  appUrl: string
+  webUrl: string
+}
+
+export function generateAmapNavUrls(
   destLng: number,
   destLat: number,
   destName: string,
-  mode: 'drive' | 'walk' | 'bus' = 'drive'
-): string {
-  const typeMap = { drive: 'car', walk: 'walk', bus: 'bus' } as const
-  const params = new URLSearchParams({
-    type: typeMap[mode],
+  mode: NavMode = 'drive'
+): AmapNavUrls {
+  const modeMap = {
+    drive: { appMode: 'car', webType: 'car' },
+    walk: { appMode: 'walk', webType: 'walk' },
+    bus: { appMode: 'bus', webType: 'bus' },
+  } as const
+
+  const modeConfig = modeMap[mode]
+  const lnglat = `${destLng.toFixed(6)},${destLat.toFixed(6)}`
+
+  const appParams = new URLSearchParams({
+    to: `${lnglat},${destName}`,
+    mode: modeConfig.appMode,
+    src: 'MeetPoint',
+    callnative: '1',
+  })
+
+  const webParams = new URLSearchParams({
+    type: modeConfig.webType,
     'to[lnglat]': `${destLng.toFixed(6)},${destLat.toFixed(6)}`,
     'to[name]': destName,
     src: 'MeetPoint',
   })
-  return `https://ditu.amap.com/dir?${params.toString()}`
+
+  return {
+    appUrl: `https://uri.amap.com/navigation?${appParams.toString()}`,
+    webUrl: `https://ditu.amap.com/dir?${webParams.toString()}`,
+  }
+}
+
+export function generateAmapNavUrl(
+  destLng: number,
+  destLat: number,
+  destName: string,
+  mode: NavMode = 'drive'
+): string {
+  return generateAmapNavUrls(destLng, destLat, destName, mode).webUrl
 }

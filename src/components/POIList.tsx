@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { List, Typography, Skeleton, Empty } from 'antd'
 import { CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
 import { POI, NavMode } from '@/types'
-import { generateAmapNavUrl } from '@/utils/mapCalc'
+import { generateAmapNavUrls } from '@/utils/mapCalc'
 import Icon from './Icon'
 
 const { Text } = Typography
@@ -62,9 +62,41 @@ function POIListSkeleton() {
 export default function POIList({ pois, selectedPOI, onSelectPOI, loading = false }: POIListProps) {
   const [navMode, setNavMode] = useState<NavMode>('drive')
 
+  const isMobileBrowser = () => /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent)
+
   const handleNavigate = (poi: POI) => {
-    const url = generateAmapNavUrl(poi.lng, poi.lat, poi.name, navMode)
-    window.open(url, '_blank')
+    const { appUrl, webUrl } = generateAmapNavUrls(poi.lng, poi.lat, poi.name, navMode)
+
+    if (!isMobileBrowser()) {
+      window.open(webUrl, '_blank')
+      return
+    }
+
+    let hasLeftPage = false
+    const markLeftPage = () => {
+      hasLeftPage = true
+    }
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        hasLeftPage = true
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    window.addEventListener('pagehide', markLeftPage)
+    window.addEventListener('blur', markLeftPage)
+
+    setTimeout(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      window.removeEventListener('pagehide', markLeftPage)
+      window.removeEventListener('blur', markLeftPage)
+
+      if (!hasLeftPage) {
+        window.location.href = webUrl
+      }
+    }, 1200)
+
+    window.location.href = appUrl
   }
 
   // 加载状态：显示骨架屏
