@@ -66,6 +66,17 @@ export function useTripFolders() {
     saveFolders(folders.filter((folder) => folder.id !== id))
   }, [folders, saveFolders])
 
+  const renameFolder = useCallback((id: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return false
+    if (folders.some((folder) => folder.name === trimmed && folder.id !== id)) return false
+    const next = folders.map((folder) => (
+      folder.id === id ? { ...folder, name: trimmed } : folder
+    ))
+    saveFolders(next)
+    return true
+  }, [folders, saveFolders])
+
   const addPointsToFolder = useCallback((folderId: string, points: LocationPoint[]) => {
     if (points.length === 0) return 0
     let added = 0
@@ -103,6 +114,7 @@ export function useTripFolders() {
     folders,
     addFolder,
     removeFolder,
+    renameFolder,
     addPointsToFolder,
     removePointFromFolder,
   }

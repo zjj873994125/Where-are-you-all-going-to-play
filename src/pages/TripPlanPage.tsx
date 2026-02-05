@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AutoComplete, Button, Dropdown, Empty, Input, Modal, Select, Space, Tag, Typography, message } from 'antd'
 import type { MenuProps } from 'antd'
-import { DeleteOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
 import { debounce } from 'lodash'
 import MapView from '@/components/MapView'
 import { calculateDistance } from '@/utils/mapCalc'
@@ -122,7 +122,7 @@ function parseJsonPoints(raw: unknown): LocationPoint[] {
 
 export default function TripPlanPage() {
   const { favorites } = useFavorites()
-  const { folders, addFolder, removeFolder, addPointsToFolder, removePointFromFolder } = useTripFolders()
+  const { folders, addFolder, removeFolder, renameFolder, addPointsToFolder, removePointFromFolder } = useTripFolders()
   const { tripPoints, addTripPoint, addTripPoints, removeTripPoint, clearTripPoints } = useTripPoints()
   const [myLocation, setMyLocation] = useState<LocationPoint | null>(null)
   const [myCity, setMyCity] = useState('')
@@ -142,6 +142,10 @@ export default function TripPlanPage() {
   const [isLocateMenuOpen, setIsLocateMenuOpen] = useState(false)
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
+  const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null)
+  const [renamingValue, setRenamingValue] = useState('')
+  const [folderPickOpen, setFolderPickOpen] = useState(false)
+  const [folderPickPoint, setFolderPickPoint] = useState<LocationPoint | null>(null)
   const hasAutoCityRef = useRef(false)
   const isMobile = window.innerWidth <= 768
   const [panelStates, setPanelStates] = useState({
@@ -279,25 +283,6 @@ export default function TripPlanPage() {
     message.success('已添加到行程')
   }
 
-  const handleImportFavorites = () => {
-    if (favorites.length === 0) {
-      message.info('收藏夹暂无地点')
-      return
-    }
-    const points = favorites.map((fav) => ({
-      id: fav.id,
-      name: fav.name,
-      address: fav.address,
-      lng: fav.lng,
-      lat: fav.lat,
-    }))
-    const added = addTripPoints(points)
-    if (added === 0) {
-      message.info('没有新地点可以导入')
-      return
-    }
-    message.success(`已导入 ${added} 个收藏点`)
-  }
 
   const handleImportJsonClick = () => {
     fileInputRef.current?.click()
@@ -420,10 +405,10 @@ export default function TripPlanPage() {
   }
 
   const handleActionMenuClick = ({ key }: { key: string }) => {
-    if (key === 'favorites') {
-      handleImportFavorites()
-      return
-    }
+    // if (key === 'favorites') {
+    //   handleImportFavorites()
+    //   return
+    // }
     if (key === 'json') {
       handleImportJsonClick()
       return
@@ -480,6 +465,41 @@ export default function TripPlanPage() {
     message.success(`已导入 ${added} 个地点`)
   }
 
+  const handleOpenFolderPick = (point: LocationPoint) => {
+    if (folders.length === 0) {
+      message.info('请先创建收藏夹')
+      return
+    }
+    setFolderPickPoint(point)
+    setFolderPickOpen(true)
+  }
+
+  const handlePickFolder = (folderId: string) => {
+    if (!folderPickPoint) return
+    const added = addPointsToFolder(folderId, [folderPickPoint])
+    if (added === 0) {
+      message.info('该地点已在收藏夹')
+    } else {
+      message.success('已加入收藏夹')
+    }
+    setFolderPickOpen(false)
+    setFolderPickPoint(null)
+  }
+  const handleRenameFolder = (folderId: string) => {
+    if (!renamingValue.trim()) {
+      message.info('请输入新的名称')
+      return
+    }
+    const ok = renameFolder(folderId, renamingValue)
+    if (!ok) {
+      message.info('名称重复或无效')
+      return
+    }
+    setRenamingFolderId(null)
+    setRenamingValue('')
+    message.success('已更新名称')
+  }
+
   return (
     <div className="app-container trip-container">
       <div className="top-bar">
@@ -533,9 +553,8 @@ export default function TripPlanPage() {
                   placement="bottomLeft"
                   menu={{
                     items: [
-                      { key: 'favorites', label: '导入全局收藏' },
                       { key: 'json', label: '导入 JSON' },
-                      { key: 'folders', label: '规划收藏夹' },
+                      { key: 'folders', label: '导入收藏夹' },
                       { key: 'clear', label: '清空行程', danger: true },
                     ],
                     onClick: handleActionMenuClick,
@@ -621,22 +640,36 @@ export default function TripPlanPage() {
                         </div>
                       </div>
                       <div className="trip-item-meta">
-                        <div className="trip-distance-label">{distanceLabel}</div>
-                        <div className={`trip-distance ${isHighlight ? 'is-highlight' : ''}`}>
-                          {formatDistance(item.distanceFromPrev)}
+                        <div className="trip-distance-row">
+                          <div className="trip-distance-label">{distanceLabel}</div>
+                          <div className={`trip-distance ${isHighlight ? 'is-highlight' : ''}`}>
+                            {formatDistance(item.distanceFromPrev)}
+                          </div>
                         </div>
-                        <Button
-                          type="text"
-                          size="small"
-                          danger
-                          className="trip-remove-btn"
-                          icon={<DeleteOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeTripPoint(item.point.id)
-                          }}
-                        >
-                        </Button>
+                        <div className="trip-action-row">
+                          <Button
+                            size="small"
+                            type="text"
+                            className="trip-folder-btn"
+                            icon={<StarOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleOpenFolderPick(item.point)
+                            }}
+                          />
+                          <Button
+                            type="text"
+                            size="small"
+                            danger
+                            className="trip-remove-btn"
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              removeTripPoint(item.point.id)
+                            }}
+                          >
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   )
@@ -705,7 +738,31 @@ export default function TripPlanPage() {
                   <div className="trip-folder-header">
                     <div className="trip-folder-title">
                       <FolderOpenOutlined />
-                      <span>{folder.name}</span>
+                      {renamingFolderId === folder.id ? (
+                        <Input
+                          size="small"
+                          value={renamingValue}
+                          onChange={(event) => setRenamingValue(event.target.value)}
+                          onPressEnter={() => handleRenameFolder(folder.id)}
+                          onBlur={() => handleRenameFolder(folder.id)}
+                          className="trip-folder-rename-input"
+                          autoFocus
+                        />
+                      ) : (
+                        <>
+                          <span>{folder.name}</span>
+                          <Button
+                            size="small"
+                            type="text"
+                            className="trip-folder-rename-btn"
+                            icon={<EditOutlined />}
+                            onClick={() => {
+                              setRenamingFolderId(folder.id)
+                              setRenamingValue(folder.name)
+                            }}
+                          />
+                        </>
+                      )}
                       <Tag color="blue">{folder.points.length}</Tag>
                     </div>
                     <Space size={6}>
@@ -751,6 +808,34 @@ export default function TripPlanPage() {
             </div>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        title="选择收藏夹"
+        open={folderPickOpen}
+        onCancel={() => {
+          setFolderPickOpen(false)
+          setFolderPickPoint(null)
+        }}
+        footer={null}
+        width={420}
+      >
+        {folders.length === 0 ? (
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无收藏夹" />
+        ) : (
+          <div className="trip-folder-pick">
+            {folders.map((folder) => (
+              <button
+                key={folder.id}
+                className="trip-folder-pick-item"
+                onClick={() => handlePickFolder(folder.id)}
+              >
+                <span>{folder.name}</span>
+                <Tag color="blue">{folder.points.length}</Tag>
+              </button>
+            ))}
+          </div>
+        )}
       </Modal>
 
       <Modal

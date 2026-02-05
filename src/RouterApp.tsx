@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Select } from 'antd'
 import MidPointPage from './App'
 import TripPlanPage from './pages/TripPlanPage'
@@ -33,12 +33,12 @@ function RouteNav() {
 
 export default function RouterApp() {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
+    <HashRouter>
       <RouteNav />
       <Routes>
         <Route path="/" element={<MidPointPage />} />
         <Route path="/trip" element={<TripPlanPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

@@ -1861,6 +1861,12 @@
   gap: 4px;
 }
 
+.trip-distance-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .trip-distance-label {
   font-size: 10px;
   color: #94a3b8;
@@ -1884,6 +1890,44 @@
   font-size: 14px;
 }
 
+.trip-folder-btn {
+  padding: 0 4px;
+  color: #f59e0b;
+}
+
+.trip-folder-btn .anticon {
+  font-size: 14px;
+}
+
+.trip-action-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.trip-folder-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-folder-pick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trip-folder-pick-item:hover {
+  border-color: #cbd5f5;
+  background: #f1f5f9;
+}
 .trip-rank-badge {
   width: 28px;
   height: 28px;
@@ -1962,6 +2006,19 @@
   gap: 8px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.trip-folder-rename-input {
+  width: 140px;
+}
+
+.trip-folder-rename-btn {
+  padding: 0 4px;
+  color: #64748b;
+}
+
+.trip-folder-rename-btn .anticon {
+  font-size: 13px;
 }
 
 .trip-folder-empty {
