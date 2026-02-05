@@ -14,7 +14,7 @@ import { useFavorites } from './hooks/useFavorites'
 import './App.css'
 
 // 当前版本号
-const APP_VERSION = '1.3.1'
+const APP_VERSION = '1.4.0'
 const WELCOME_STORAGE_KEY = 'meetpoint_hide_welcome'
 const SHARE_STATE_VERSION = 1
 const VALID_SEARCH_RADIUS: SearchRadius[] = [500, 1000, 2000, 3000]
@@ -908,11 +908,11 @@ function App() {
           <div className="welcome-section">
             <h4>📢 版本更新 v{APP_VERSION}</h4>
             <ul className="changelog-list">
-              <li>POI 详情新增营业状态、人均消费、评分展示</li>
-              <li>支持解析并显示 biz_ext 的 open_time、opentime2、cost、rating 字段</li>
-              <li>营业时间支持自动判断：营业中 / 休息中 / 状态未知</li>
-              <li>修复部分 POI 详情字段有值但前端显示为空的问题（兼容 biz_ext / bizExt 结构）</li>
-              <li>“我的位置”标记升级为定位针样式，视觉更明显</li>
+              <li>新增“行程规划”页面：按当前位置规划游玩路线</li>
+              <li>支持两种计算方式：路线优化 / 离我最近</li>
+              <li>支持地图点击、搜索、导入（JSON/全局收藏）添加行程点</li>
+              <li>支持手动/自动定位切换，定位失败可手动选点</li>
+              <li>新增行程专属收藏夹：多收藏夹、多地点、可重命名</li>
             </ul>
           </div>
         </div>
