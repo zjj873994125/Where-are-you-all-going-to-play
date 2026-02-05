@@ -8,6 +8,7 @@ interface MapViewProps {
   onMapClick: (lng: number, lat: number) => void
   selectedPOI: POI | null
   currentCity?: City | null
+  districtLevel?: 'province' | 'city' | 'district'
   searchRadius?: SearchRadius
   pois?: POI[]
   searchType?: SearchType | null
@@ -104,6 +105,7 @@ export default function MapView({
   onMapClick,
   selectedPOI,
   currentCity,
+  districtLevel = 'city',
   searchRadius = 1000,
   pois = [],
   searchType,
@@ -126,6 +128,7 @@ export default function MapView({
   const clusterRef = useRef<any>(null)
   const selectedMarkerRef = useRef<any>(null)
   const circleRef = useRef<any>(null)
+  const districtLayerRef = useRef<any>(null)
   const initializedCityRef = useRef<string | null>(null)
   const rangingToolRef = useRef<any>(null)
   const satelliteLayerRef = useRef<any>(null)
@@ -217,6 +220,53 @@ export default function MapView({
   }, [focusPoint])
 
   // 切换卫星地图
+  useEffect(() => {
+    if (!mapInstanceRef.current) return
+    const map = mapInstanceRef.current
+    const adcode = currentCity?.adcode
+
+    if (!adcode || !window.AMap?.DistrictLayer?.Province) {
+      if (districtLayerRef.current) {
+        map.remove(districtLayerRef.current)
+        districtLayerRef.current = null
+      }
+      return
+    }
+
+    const levelDepthMap: Record<string, number> = {
+      province: 1,
+      city: 2,
+      district: 3,
+    }
+
+    const resolvedAdcode = districtLevel === 'province'
+      ? `${adcode.slice(0, 2)}0000`
+      : adcode
+
+    const depth = levelDepthMap[districtLevel] ?? 2
+
+    if (districtLayerRef.current) {
+      map.remove(districtLayerRef.current)
+      districtLayerRef.current = null
+    }
+
+    const layer = new window.AMap.DistrictLayer.Province({
+      zIndex: 12,
+      zooms: [3, 20],
+      adcode: resolvedAdcode,
+      depth,
+    })
+
+    layer.setStyles({
+      'stroke-width': 1.2,
+      'stroke': '#94a3b8',
+      fill: 'rgba(56, 189, 248, 0.08)',
+    })
+
+    map.add(layer)
+    districtLayerRef.current = layer
+  }, [currentCity?.adcode, districtLevel])
+
   useEffect(() => {
     if (!mapInstanceRef.current) return
     const map = mapInstanceRef.current

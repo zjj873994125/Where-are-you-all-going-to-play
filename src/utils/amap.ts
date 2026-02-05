@@ -201,33 +201,50 @@ export async function searchCity(keyword: string): Promise<City[]> {
   }
 
   try {
-    await loadPlugin('AutoComplete')
+    await loadPlugin('DistrictSearch')
   } catch (e) {
-    console.error('AutoComplete plugin failed to load:', e)
+    console.error('DistrictSearch plugin failed to load:', e)
     return []
   }
 
   return new Promise((resolve) => {
-    const autoComplete = new window.AMap.AutoComplete({
-      city: '全国'
+    const districtSearch = new window.AMap.DistrictSearch({
+      level: 'city',
+      subdistrict: 0,
+      showbiz: false,
+      extensions: 'base',
     })
 
-    autoComplete.search(keyword, (status: string, result: any) => {
-      if (status === 'complete' && result.tips) {
-        const cities: City[] = result.tips
-          .filter((tip: any) => tip.location && (tip.type === '城市' || tip.adcode))
-          .map((tip: any) => ({
-            name: tip.name || tip.district,
-            adcode: tip.adcode,
-            center: {
-              lng: tip.location.lng,
-              lat: tip.location.lat
+    districtSearch.search(keyword, (status: string, result: any) => {
+      if (status === 'complete' && result.districtList?.length) {
+        const cities: City[] = result.districtList
+          .map((district: any) => {
+            const center = district.center
+            let lng: number | null = null
+            let lat: number | null = null
+
+            if (typeof center === 'string') {
+              const [lngStr, latStr] = center.split(',')
+              lng = Number(lngStr)
+              lat = Number(latStr)
+            } else if (center && typeof center === 'object') {
+              lng = Number(center.lng ?? center.getLng?.())
+              lat = Number(center.lat ?? center.getLat?.())
             }
-          }))
-          // 去重
-          .filter((city: City, index: number, self: City[]) =>
-            index === self.findIndex((c: City) => c.name === city.name)
-          )
+
+            if (!district.adcode || !Number.isFinite(lng) || !Number.isFinite(lat)) return null
+
+            return {
+              name: district.name,
+              adcode: district.adcode,
+              center: {
+                lng,
+                lat,
+              },
+            }
+          })
+          .filter(Boolean) as City[]
+
         resolve(cities.slice(0, 10))
       } else {
         resolve([])

@@ -186,6 +186,15 @@
   z-index: 100;
 }
 
+.trip-map-toolbar-inline {
+  left: 120px;
+  right: auto;
+  top: 12px;
+}
+.trip-map-toolbar-inline .toolbar-btn {
+  padding: 20px 12px;
+}
+
 .toolbar-btn {
   padding: 6px 10px;
   border: 1px solid #e5e7eb;

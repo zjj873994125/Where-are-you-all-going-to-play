@@ -146,6 +146,7 @@ export default function TripPlanPage() {
   const [renamingValue, setRenamingValue] = useState('')
   const [folderPickOpen, setFolderPickOpen] = useState(false)
   const [folderPickPoint, setFolderPickPoint] = useState<LocationPoint | null>(null)
+  const [districtLevel, setDistrictLevel] = useState<'province' | 'city' | 'district'>('city')
   const hasAutoCityRef = useRef(false)
   const isMobile = window.innerWidth <= 768
   const [panelStates, setPanelStates] = useState({
@@ -510,6 +511,16 @@ export default function TripPlanPage() {
             setMyCity(city.name || '')
           }}
         />
+        <Select
+          size="small"
+          value={districtLevel}
+          onChange={(value) => setDistrictLevel(value)}
+          options={[
+            { value: 'province', label: '省' },
+            { value: 'city', label: '市' },
+            { value: 'district', label: '区' },
+          ]}
+        />
       </div>
       <MapView
         points={mapPoints}
@@ -518,6 +529,7 @@ export default function TripPlanPage() {
         selectedPOI={null}
         focusPoint={focusPoint}
         currentCity={currentCity}
+        districtLevel={districtLevel}
         rankedPoints={rankedPoints}
         highlightTop={myLocation && isComputed ? HIGHLIGHT_TOP : 0}
         autoFit={false}
@@ -681,7 +693,7 @@ export default function TripPlanPage() {
         </div>
       </div>
 
-      <div className="map-toolbar">
+      <div className="map-toolbar trip-map-toolbar-inline">
         <Dropdown
           placement="bottomRight"
           trigger={['click']}
