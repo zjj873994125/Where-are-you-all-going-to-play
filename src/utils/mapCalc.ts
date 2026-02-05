@@ -131,7 +131,7 @@ export function calculateDistance(
 
 export interface AmapNavUrls {
   appUrl: string
-  webUrl: string
+  webUrl: string 
 }
 
 export function generateAmapNavUrls(

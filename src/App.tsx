@@ -6,6 +6,7 @@ import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
 import POIDetailCard from './components/POIDetailCard'
+import AIAssistant from './components/AIAssistant'
 import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City, MidPointMode } from './types'
 import { calculateDistance, calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
 import { searchPOI, getCurrentCity, getCurrentLocation, getPOIDetail, RouteResult } from './utils/amap'
@@ -844,7 +845,7 @@ function App() {
           <div className="tip-content">
             <div className="tip-icon">👆</div>
             <div className="tip-text">点击地图添加地点</div>
-            <div className="tip-text">杰哥大地图</div>
+            <div className="tip-text">杰少大地图</div>
             <div className="tip-sub">添加至少2个地点后计算中点</div>
           </div>
         </div>
@@ -911,6 +912,18 @@ function App() {
           </div>
         </div>
       </Modal>
+
+      <AIAssistant
+        appVersion={APP_VERSION}
+        appContext={{
+          currentCity,
+          points,
+          midPointMode,
+          searchRadius,
+          activeSearchType,
+          lastSearchKeyword,
+        }}
+      />
     </div>
   )
 }
