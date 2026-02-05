@@ -15,7 +15,8 @@
     "@types/lodash": "^4.17.23",
     "lodash": "^4.17.23",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
     "@ant-design/icons": "^6.1.0",

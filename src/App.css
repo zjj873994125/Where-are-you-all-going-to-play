@@ -13,6 +13,18 @@
   background: #f0f2f5;
 }
 
+.route-nav {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 90;
+  display: inline-flex;
+}
+
+.route-nav .ant-select {
+  width: 120px;
+}
+
 /* 顶部城市选择器 */
 .top-bar {
   position: fixed;
@@ -320,6 +332,49 @@
   }
 
   .location-panel-wrapper.collapsed .title-icon {
+    margin: 0;
+    color: white;
+  }
+
+  .trip-panel-wrapper {
+    height: auto;
+    max-height: 55vh;
+    max-width: calc(100vw - 24px);
+    border-radius: 16px;
+  }
+
+  .trip-panel-wrapper .trip-panel-content {
+    max-height: calc(55vh - 50px);
+    overflow-y: auto;
+  }
+
+  .trip-panel-wrapper.collapsed {
+    max-height: 48px;
+    border-radius: 50%;
+    width: 48px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .trip-panel-wrapper.collapsed .panel-header {
+    padding: 12px;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  }
+
+  .trip-panel-wrapper.collapsed .panel-header:hover {
+    background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  }
+
+  .trip-panel-wrapper.collapsed .panel-title,
+  .trip-panel-wrapper.collapsed .toggle-icon {
+    display: none;
+  }
+
+  .trip-panel-wrapper.collapsed .title-icon {
     margin: 0;
     color: white;
   }
@@ -1688,4 +1743,294 @@
     bottom: 70px;
     max-height: 60vh;
   }
+}
+
+/* Trip plan page */
+.trip-panel-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.trip-panel-content {
+  padding: 12px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.trip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trip-search {
+  margin-top: 6px;
+}
+
+.trip-action-btn {
+  border-radius: 8px;
+}
+
+.trip-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.trip-empty {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
+}
+
+.trip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trip-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.trip-item:hover {
+  border-color: #cbd5f5;
+  background: #f1f5f9;
+}
+
+.trip-item.is-highlight {
+  border-color: #f59e0b;
+  background: #fff7ed;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.15);
+}
+
+.trip-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.trip-item-info {
+  min-width: 0;
+}
+
+.trip-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.trip-item-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.trip-item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.trip-distance-label {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.trip-distance {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.trip-distance.is-highlight {
+  color: #b45309;
+}
+
+.trip-remove-btn {
+  padding: 0 4px;
+}
+
+.trip-remove-btn .anticon {
+  font-size: 14px;
+}
+
+.trip-rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #94a3b8;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.trip-rank-badge.is-highlight {
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.35);
+}
+
+.trip-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.trip-modal-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.trip-modal-coords {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.trip-folder-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip-folder-create {
+  display: flex;
+  gap: 8px;
+}
+
+.trip-folder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.trip-folder-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.trip-folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.trip-folder-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.trip-folder-empty {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.trip-folder-points {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.trip-folder-point {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #eef2f7;
+}
+
+.trip-folder-point-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.trip-folder-point-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-folder-point-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-rank-marker {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #0f172a;
+  border: 2px solid #fff;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+}
+
+.trip-rank-marker--highlight {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+  box-shadow: 0 6px 16px rgba(249, 115, 22, 0.45);
+}
+
+.trip-rank-number {
+  position: relative;
+  top: 1px;
 }

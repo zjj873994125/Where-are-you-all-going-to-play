@@ -552,14 +552,19 @@ function App() {
         return
       }
 
-      handleAddPoint({
+      const myPoint: LocationPoint = {
         id: Date.now().toString(),
         name: '我的位置',
         address: location.address || '当前位置',
         lng: location.lng,
         lat: location.lat,
         isMyLocation: true,
-      })
+      }
+      handleAddPoint(myPoint)
+      // 定位后优先将视图移到我的位置
+      setTimeout(() => {
+        setFocusPoint(myPoint)
+      }, 0)
     } catch (error) {
       console.error('定位我的位置失败:', error)
       message.error('定位失败，请稍后重试')

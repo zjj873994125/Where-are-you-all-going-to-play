@@ -18,6 +18,9 @@ interface MapViewProps {
   onRangingEnd?: () => void
   travelRoutes?: Array<RouteResult | null>
   midPointMode?: MidPointMode
+  rankedPoints?: Record<string, number>
+  highlightTop?: number
+  autoFit?: boolean
 }
 
 // 搜索类型对应的图标和颜色配置
@@ -95,9 +98,29 @@ const routeColors = [
   '#6DC8EC', // 天蓝
 ]
 
-export default function MapView({ points, midPoint, onMapClick, selectedPOI, currentCity, searchRadius = 1000, pois = [], searchType, onSelectPOI, focusPoint, isSatellite, isRanging, onRangingEnd, travelRoutes = [], midPointMode = 'straight' }: MapViewProps) {
+export default function MapView({
+  points,
+  midPoint,
+  onMapClick,
+  selectedPOI,
+  currentCity,
+  searchRadius = 1000,
+  pois = [],
+  searchType,
+  onSelectPOI,
+  focusPoint,
+  isSatellite,
+  isRanging,
+  onRangingEnd,
+  travelRoutes = [],
+  midPointMode = 'straight',
+  rankedPoints,
+  highlightTop = 0,
+  autoFit = true,
+}: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<any>(null)
+  const onMapClickRef = useRef(onMapClick)
   const markersRef = useRef<any[]>([])
   const poiMarkersRef = useRef<any[]>([])
   const clusterRef = useRef<any>(null)
@@ -118,6 +141,10 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     distance: 0,
     hasStartPoint: false,
   })
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick
+  }, [onMapClick])
 
   // 初始化或更新地图
   useEffect(() => {
@@ -152,7 +179,7 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
 
       map.on('click', (e: any) => {
         if (!isRangingRef.current) {
-          onMapClick(e.lnglat.lng, e.lnglat.lat)
+          onMapClickRef.current(e.lnglat.lng, e.lnglat.lat)
         }
       })
 
@@ -327,6 +354,9 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
     points.forEach((point, index) => {
       const letter = String.fromCharCode(65 + index)
       const isMyLocation = !!point.isMyLocation
+      const rank = rankedPoints ? rankedPoints[point.id] : undefined
+      const isRanked = typeof rank === 'number' && Number.isFinite(rank)
+      const isHighlight = isRanked && highlightTop > 0 && rank <= highlightTop
       const markerContent = isMyLocation
         ? `
           <div class="my-location-marker">
@@ -336,6 +366,12 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
             </div>
           </div>
         `
+        : isRanked
+          ? `
+            <div class="trip-rank-marker ${isHighlight ? 'trip-rank-marker--highlight' : ''}">
+              <span class="trip-rank-number">${rank}</span>
+            </div>
+          `
         : `
           <div style="
             width: 32px;
@@ -356,8 +392,12 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
         position: [point.lng, point.lat],
         title: isMyLocation ? `${point.name}（当前位置）` : point.name,
         content: markerContent,
-        offset: isMyLocation ? new window.AMap.Pixel(-14, -38) : new window.AMap.Pixel(-16, -16),
-        zIndex: isMyLocation ? 140 : 100,
+        offset: isMyLocation
+          ? new window.AMap.Pixel(-14, -38)
+          : isRanked
+            ? new window.AMap.Pixel(-17, -17)
+            : new window.AMap.Pixel(-16, -16),
+        zIndex: isMyLocation ? 140 : isHighlight ? 130 : 100,
       })
       marker.setMap(map)
       markersRef.current.push(marker)
@@ -367,11 +407,11 @@ export default function MapView({ points, midPoint, onMapClick, selectedPOI, cur
       ...points.map((p) => [p.lng, p.lat]),
       ...(midPoint ? [[midPoint.lng, midPoint.lat]] : []),
     ]
-    // 只在有多个点时自动调整视野，且限制最大缩放级别
-    if (allPositions.length > 1) {
+    // 只在有多个点且允许自动调整视野时，限制最大缩放级别
+    if (autoFit && allPositions.length > 1) {
       map.setFitView(null, false, [50, 50, 50, 50], 15) // maxZoom 限制为 15
     }
-  }, [points, midPoint])
+  }, [points, midPoint, rankedPoints, highlightTop, autoFit])
 
   // 更新 POI 标记（使用点聚合）
   useEffect(() => {
