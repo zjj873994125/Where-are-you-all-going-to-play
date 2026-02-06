@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense, lazy } from 'react'
 import { AutoComplete, Button, Dropdown, Empty, Input, Modal, Select, Space, Steps, Tag, Typography, message } from 'antd'
 import type { MenuProps } from 'antd'
 import { CopyOutlined, DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined, QuestionCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
 import { debounce } from 'lodash'
 import MapView from '@/components/MapView'
 import MapToolbar from '@/components/MapToolbar'
-import AIAssistant from '@/components/AIAssistant'
 import { calculateDistance } from '@/utils/mapCalc'
 import { getCityInfoFromLocation, getCurrentCity, getCurrentLocation, searchByKeyword } from '@/utils/amap'
 import CitySelector from '@/components/CitySelector'
@@ -22,6 +21,7 @@ type TripRouteItem = {
 type RouteMode = 'tsp' | 'nearby'
 
 const HIGHLIGHT_TOP = 4
+const AIAssistant = lazy(() => import('@/components/AIAssistant'))
 
 function formatDistance(distance?: number) {
   if (distance === undefined || Number.isNaN(distance)) return '--'
@@ -1063,12 +1063,14 @@ export default function TripPlanPage() {
         </div>
       </Modal>
 
-      <AIAssistant
-        appContext={{
-          currentCity,
-          points: mapPoints,
-        }}
-      />
+      <Suspense fallback={null}>
+        <AIAssistant
+          appContext={{
+            currentCity,
+            points: mapPoints,
+          }}
+        />
+      </Suspense>
     </div>
   )
 }

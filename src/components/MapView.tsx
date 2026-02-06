@@ -657,7 +657,6 @@ export default function MapView({
     travelRoutes.forEach((route, index) => {
       // 严格校验路线数据
       if (!route || !route.path || !Array.isArray(route.path) || route.path.length < 2) {
-        console.log(`路线 ${index + 1} 数据无效，跳过绘制`)
         return
       }
 
@@ -670,7 +669,6 @@ export default function MapView({
       )
 
       if (validPath.length < 2) {
-        console.log(`路线 ${index + 1} 有效点位不足，跳过绘制`)
         return
       }
 
@@ -695,7 +693,6 @@ export default function MapView({
 
         polyline.setMap(map)
         routePolylinesRef.current.push(polyline)
-        console.log(`路线 ${index + 1} 绘制成功，共 ${validPath.length} 个点`)
       } catch (e) {
         console.error(`路线 ${index + 1} 绘制失败:`, e)
       }
