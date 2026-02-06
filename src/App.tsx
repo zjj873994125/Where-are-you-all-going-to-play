@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
-import { message, Modal, Checkbox, Divider, Tag, Button, Select } from 'antd'
+import { message, Modal, Checkbox, Divider, Tag, Button } from 'antd'
 import { debounce } from 'lodash'
 import MapView from './components/MapView'
 import LocationPanel from './components/LocationPanel'
@@ -142,7 +142,6 @@ function App() {
   const [focusPoint, setFocusPoint] = useState<LocationPoint | null>(null)
   const [isSatellite, setIsSatellite] = useState(false)
   const [isRanging, setIsRanging] = useState(false)
-  const [districtLevel, setDistrictLevel] = useState<'province' | 'city' | 'district'>('city')
 
   // 中点计算模式和通勤时间
   const [midPointMode, setMidPointMode] = useState<MidPointMode>('straight')
@@ -694,7 +693,6 @@ function App() {
         onMapClick={handleMapClick}
         selectedPOI={selectedPOI}
         currentCity={currentCity}
-        districtLevel={districtLevel}
         searchRadius={searchRadius}
         pois={pois}
         searchType={activeSearchType}
@@ -712,16 +710,6 @@ function App() {
         <CitySelector
           currentCity={currentCity}
           onCityChange={handleCityChange}
-        />
-        <Select
-          size="small"
-          value={districtLevel}
-          onChange={(value) => setDistrictLevel(value)}
-          options={[
-            { value: 'province', label: '省' },
-            { value: 'city', label: '市' },
-            { value: 'district', label: '区' },
-          ]}
         />
         {midPoint && (
           <div className="midpoint-card">

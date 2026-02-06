@@ -149,6 +149,42 @@ export async function getCityFromLocation(lng: number, lat: number): Promise<str
   })
 }
 
+export async function getCityInfoFromLocation(lng: number, lat: number): Promise<City | null> {
+  if (!window.AMap) {
+    return null
+  }
+
+  try {
+    await loadPlugin('Geocoder')
+  } catch (e) {
+    console.error('Geocoder plugin failed to load:', e)
+    return null
+  }
+
+  return new Promise((resolve) => {
+    const geocoder = new window.AMap.Geocoder()
+
+    geocoder.getAddress([lng, lat], (status: string, result: any) => {
+      if (status === 'complete' && result.regeocode) {
+        const component = result.regeocode.addressComponent || {}
+        const name = component.city || component.province || ''
+        const adcode = component.adcode || ''
+        if (!name || !adcode) {
+          resolve(null)
+          return
+        }
+        resolve({
+          name,
+          adcode,
+          center: { lng, lat },
+        })
+      } else {
+        resolve(null)
+      }
+    })
+  })
+}
+
 /**
  * 获取当前定位的城市
  */

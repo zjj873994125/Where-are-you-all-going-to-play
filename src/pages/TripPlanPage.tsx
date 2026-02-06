@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AutoComplete, Button, Dropdown, Empty, Input, Modal, Select, Space, Tag, Typography, message } from 'antd'
+import { AutoComplete, Button, Dropdown, Empty, Input, Modal, Select, Space, Steps, Tag, Typography, message } from 'antd'
 import type { MenuProps } from 'antd'
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, FolderOpenOutlined, PlusOutlined, QuestionCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
 import { debounce } from 'lodash'
 import MapView from '@/components/MapView'
 import { calculateDistance } from '@/utils/mapCalc'
-import { getCurrentCity, getCurrentLocation, searchByKeyword } from '@/utils/amap'
+import { getCityInfoFromLocation, getCurrentCity, getCurrentLocation, searchByKeyword } from '@/utils/amap'
 import CitySelector from '@/components/CitySelector'
 import { City, LocationPoint } from '@/types'
 import { useFavorites } from '@/hooks/useFavorites'
@@ -146,7 +146,8 @@ export default function TripPlanPage() {
   const [renamingValue, setRenamingValue] = useState('')
   const [folderPickOpen, setFolderPickOpen] = useState(false)
   const [folderPickPoint, setFolderPickPoint] = useState<LocationPoint | null>(null)
-  const [districtLevel, setDistrictLevel] = useState<'province' | 'city' | 'district'>('city')
+  const [isJsonSampleOpen, setIsJsonSampleOpen] = useState(false)
+  const [isGuideOpen, setIsGuideOpen] = useState(false)
   const hasAutoCityRef = useRef(false)
   const isMobile = window.innerWidth <= 768
   const [panelStates, setPanelStates] = useState({
@@ -223,6 +224,15 @@ export default function TripPlanPage() {
       setMyLocation(locationPoint)
       setMyCity(result.city || '')
       setFocusPoint(locationPoint)
+      try {
+        const city = await getCurrentCity()
+        if (city) {
+          setCurrentCity(city)
+          setMyCity(city.name || '')
+        }
+      } catch (error) {
+        // ignore city sync errors
+      }
       message.success('定位成功')
     } finally {
       setIsLocating(false)
@@ -254,6 +264,12 @@ export default function TripPlanPage() {
       setMyLocation(manualPoint)
       setFocusPoint(manualPoint)
       setIsManualLocating(false)
+      getCityInfoFromLocation(lng, lat).then((city) => {
+        if (city) {
+          setCurrentCity(city)
+          setMyCity(city.name || '')
+        }
+      })
       message.success('已手动设置我的位置')
       return
     }
@@ -406,12 +422,12 @@ export default function TripPlanPage() {
   }
 
   const handleActionMenuClick = ({ key }: { key: string }) => {
-    // if (key === 'favorites') {
-    //   handleImportFavorites()
-    //   return
-    // }
     if (key === 'json') {
       handleImportJsonClick()
+      return
+    }
+    if (key === 'export') {
+      handleExportJson()
       return
     }
     if (key === 'folders') {
@@ -466,6 +482,48 @@ export default function TripPlanPage() {
     message.success(`已导入 ${added} 个地点`)
   }
 
+  const handleExportJson = () => {
+    if (tripPoints.length === 0) {
+      message.info('当前没有可导出的地点')
+      return
+    }
+    const payload = tripPoints.map((point) => ({
+      name: point.name,
+      address: point.address,
+      lng: point.lng,
+      lat: point.lat,
+    }))
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `trip-points-${Date.now()}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const jsonSample = `[{ 
+  "name": "景点A",
+  "lng": 120.12,
+  "lat": 30.28
+},
+{
+  "name": "景点B",
+  "lng": 120.09,
+  "lat": 30.27
+}]`
+
+  const handleCopyJsonSample = async () => {
+    try {
+      await navigator.clipboard.writeText(jsonSample)
+      message.success('已复制 JSON 示例')
+    } catch (error) {
+      message.error('复制失败，请手动复制')
+    }
+  }
+
   const handleOpenFolderPick = (point: LocationPoint) => {
     if (folders.length === 0) {
       message.info('请先创建收藏夹')
@@ -511,16 +569,6 @@ export default function TripPlanPage() {
             setMyCity(city.name || '')
           }}
         />
-        <Select
-          size="small"
-          value={districtLevel}
-          onChange={(value) => setDistrictLevel(value)}
-          options={[
-            { value: 'province', label: '省' },
-            { value: 'city', label: '市' },
-            { value: 'district', label: '区' },
-          ]}
-        />
       </div>
       <MapView
         points={mapPoints}
@@ -529,7 +577,6 @@ export default function TripPlanPage() {
         selectedPOI={null}
         focusPoint={focusPoint}
         currentCity={currentCity}
-        districtLevel={districtLevel}
         rankedPoints={rankedPoints}
         highlightTop={myLocation && isComputed ? HIGHLIGHT_TOP : 0}
         autoFit={false}
@@ -566,7 +613,8 @@ export default function TripPlanPage() {
                   menu={{
                     items: [
                       { key: 'json', label: '导入 JSON' },
-                      { key: 'folders', label: '导入收藏夹' },
+                      { key: 'export', label: '导出 JSON' },
+                      { key: 'folders', label: '规划收藏夹' },
                       { key: 'clear', label: '清空行程', danger: true },
                     ],
                     onClick: handleActionMenuClick,
@@ -584,7 +632,22 @@ export default function TripPlanPage() {
               />
             </div>
             <div className="trip-hint">
-              支持点击地图添加地点。JSON 示例：[{`{"name":"景点","lng":120.12,"lat":30.28}`}]
+              操作方法
+              <Button
+                type="text"
+                size="small"
+                className="trip-json-help"
+                icon={<QuestionCircleOutlined />}
+                onClick={() => setIsGuideOpen(true)}
+              />
+              JSON 示例
+              <Button
+                type="text"
+                size="small"
+                className="trip-json-help"
+                icon={<QuestionCircleOutlined />}
+                onClick={() => setIsJsonSampleOpen(true)}
+              />
             </div>
             <div className="trip-search">
               <AutoComplete
@@ -634,10 +697,11 @@ export default function TripPlanPage() {
                   const distanceLabel = myLocation && isComputed
                     ? (routeMode === 'nearby' ? '距我' : (index === 0 ? '距我' : '距上一站'))
                     : '未计算'
+                  const isBeyondTop = myLocation && isComputed ? rank !== undefined && rank > HIGHLIGHT_TOP : false
                   return (
                     <div
                       key={item.point.id}
-                      className={`trip-item ${isHighlight ? 'is-highlight' : ''}`}
+                      className={`trip-item ${isHighlight ? 'is-highlight' : ''} ${myLocation && isComputed ? 'is-computed' : ''} ${isBeyondTop ? 'is-beyond' : ''}`}
                       onClick={() => setFocusPoint(item.point)}
                     >
                       <div className="trip-item-main">
@@ -708,11 +772,14 @@ export default function TripPlanPage() {
           }}
         >
           <Button
-            className={`toolbar-btn ${isLocating || isManualLocating ? 'active' : ''}`}
+            className={`toolbar-btn trip-locate-btn ${isLocating || isManualLocating ? 'active' : ''}`}
             disabled={isLocating}
             loading={isLocating}
+            color="pink"
+            type="primary"
+            icon={<EnvironmentOutlined />}
           >
-            {isManualLocating ? '点击地图定位' : '定位方式'}
+            定位
           </Button>
         </Dropdown>
       </div>
@@ -820,6 +887,39 @@ export default function TripPlanPage() {
             </div>
           )}
         </div>
+      </Modal>
+
+      <Modal
+        title="JSON 示例"
+        open={isJsonSampleOpen}
+        onCancel={() => setIsJsonSampleOpen(false)}
+        footer={(
+          <Button icon={<CopyOutlined />} onClick={handleCopyJsonSample}>
+            复制示例
+          </Button>
+        )}
+        width={420}
+      >
+        <pre className="trip-json-code">{jsonSample}</pre>
+      </Modal>
+
+      <Modal
+        title="操作步骤"
+        open={isGuideOpen}
+        onCancel={() => setIsGuideOpen(false)}
+        footer={null}
+        width={420}
+      >
+        <Steps
+          direction="vertical"
+          size="small"
+          items={[
+            { title: '定位自己', description: '点击左上角“定位方式”，先定位自己的位置（自动或手动）。' },
+            { title: '添加地点', description: '通过地图点击、搜索或导入添加想去的地点。' },
+            { title: '选择方式', description: '选择计算方式（路线优化 / 离我最近）。' },
+            { title: '开始计算', description: '点击“开始计算”，生成 1、2、3、4 的推荐顺序。' },
+          ]}
+        />
       </Modal>
 
       <Modal
