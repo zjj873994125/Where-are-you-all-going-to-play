@@ -1,0 +1,36 @@
+.route-nav {
+  position: fixed;
+  right: 68px;
+  bottom: 18px;
+  z-index: 120;
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+}
+
+.route-nav-switch {
+  --animated-switch-width: 138px;
+  --animated-switch-height: 34px;
+  --animated-switch-thumb-width: 64px;
+  --animated-switch-thumb-height: 28px;
+  --animated-switch-thumb-travel: 68px;
+  --animated-switch-grow-in-offset: 24px;
+  --animated-switch-grow-out-offset: 6px;
+}
+
+@media (max-width: 768px) {
+  .route-nav {
+    right: 64px;
+    bottom: 16px;
+  }
+
+  .route-nav-switch {
+    --animated-switch-width: 130px;
+    --animated-switch-height: 30px;
+    --animated-switch-thumb-width: 60px;
+    --animated-switch-thumb-height: 26px;
+    --animated-switch-thumb-travel: 64px;
+    --animated-switch-grow-in-offset: 22px;
+    --animated-switch-grow-out-offset: 5px;
+  }
+}

@@ -1,0 +1,228 @@
+.animated-switch {
+  --animated-switch-width: 158px;
+  --animated-switch-height: 38px;
+  --animated-switch-thumb-width: 74px;
+  --animated-switch-thumb-height: 30px;
+  --animated-switch-thumb-travel: 78px;
+  --animated-switch-grow-in-offset: 28px;
+  --animated-switch-grow-out-offset: 8px;
+  --animated-switch-off-track: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  --animated-switch-on-track: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+  --animated-switch-thumb-color: #ffffff;
+  --animated-switch-focus-ring: rgba(125, 211, 252, 0.35);
+  --animated-switch-label-active: #102a43;
+  --animated-switch-label-inactive: rgba(255, 255, 255, 0.9);
+  position: relative;
+  width: var(--animated-switch-width);
+  height: var(--animated-switch-height);
+  border-radius: 999px;
+  font-size: 16px;
+}
+
+.animated-switch-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.animated-switch-track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  border-radius: inherit;
+  background: var(--animated-switch-off-track);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 10px 26px rgba(15, 23, 42, 0.24);
+  transition: background 0.35s linear, box-shadow 0.25s ease;
+  overflow: hidden;
+}
+
+.animated-switch.is-on .animated-switch-track {
+  background: var(--animated-switch-on-track);
+}
+
+.animated-switch-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 90% at 20% 50%, rgba(255, 255, 255, 0.2), transparent 75%),
+    radial-gradient(80% 120% at 80% 50%, rgba(255, 255, 255, 0.16), transparent 78%);
+  pointer-events: none;
+}
+
+.animated-switch-checkbox:focus-visible + .animated-switch-track {
+  box-shadow:
+    0 0 0 3px var(--animated-switch-focus-ring),
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 10px 26px rgba(15, 23, 42, 0.24);
+}
+
+.animated-switch-checkbox:hover + .animated-switch-track {
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 14px 30px rgba(15, 23, 42, 0.3);
+}
+
+.animated-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: var(--animated-switch-thumb-width);
+  height: var(--animated-switch-thumb-height);
+  border-radius: 999px;
+  background: var(--animated-switch-thumb-color);
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.28),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.18);
+  transform-origin: left center;
+  transform: translateX(0) scale(1);
+  z-index: 1;
+}
+
+.animated-switch.is-on .animated-switch-thumb {
+  transform: translateX(var(--animated-switch-thumb-travel)) scale(1);
+}
+
+.animated-switch.animate-to-on .animated-switch-thumb,
+.animated-switch.animate-to-off .animated-switch-thumb {
+  animation-duration: 0.2s, 0.2s;
+  animation-timing-function: cubic-bezier(0.75, 0, 1, 1), cubic-bezier(0, 0, 0.3, 1.5);
+  animation-delay: 0s, 0.2s;
+  animation-fill-mode: forwards;
+}
+
+.animated-switch.animate-to-off .animated-switch-thumb {
+  animation-name: animated-switch-grow-out, animated-switch-bounce-out;
+}
+
+.animated-switch.animate-to-on .animated-switch-thumb {
+  animation-name: animated-switch-grow-in, animated-switch-bounce-in;
+}
+
+.animated-switch-label {
+  position: relative;
+  z-index: 2;
+  width: 50%;
+  text-align: center;
+  line-height: var(--animated-switch-thumb-height);
+  color: var(--animated-switch-label-inactive);
+  font-family: "Sora", "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.24px;
+  user-select: none;
+  pointer-events: none;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.animated-switch-label.active {
+  color: var(--animated-switch-label-active);
+  opacity: 0.95;
+}
+
+.animated-switch-label-left {
+  padding-right: 6px;
+}
+
+.animated-switch-label-right {
+  padding-left: 6px;
+}
+
+.animated-switch.is-disabled {
+  opacity: 0.64;
+}
+
+.animated-switch.is-disabled .animated-switch-checkbox {
+  cursor: not-allowed;
+}
+
+@keyframes animated-switch-grow-in {
+  0% {
+    border-radius: calc(var(--animated-switch-thumb-height) / 2);
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    border-radius: 10px / 20px;
+    transform: translateX(var(--animated-switch-grow-in-offset)) scale(1.5454545455, 0.7272727273);
+  }
+}
+
+@keyframes animated-switch-bounce-in {
+  0% {
+    border-radius: 10px / 20px;
+    transform: translateX(var(--animated-switch-grow-in-offset)) scale(1.5454545455, 0.7272727273);
+  }
+  100% {
+    border-radius: calc(var(--animated-switch-thumb-height) / 2);
+    transform: translateX(var(--animated-switch-thumb-travel)) scale(1);
+  }
+}
+
+@keyframes animated-switch-grow-out {
+  0% {
+    border-radius: calc(var(--animated-switch-thumb-height) / 2);
+    transform: translateX(var(--animated-switch-thumb-travel)) scale(1);
+  }
+  100% {
+    border-radius: 10px / 20px;
+    transform: translateX(var(--animated-switch-grow-out-offset)) scale(1.5454545455, 0.7272727273);
+  }
+}
+
+@keyframes animated-switch-bounce-out {
+  0% {
+    border-radius: 10px / 20px;
+    transform: translateX(var(--animated-switch-grow-out-offset)) scale(1.5454545455, 0.7272727273);
+  }
+  100% {
+    border-radius: calc(var(--animated-switch-thumb-height) / 2);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .animated-switch {
+    --animated-switch-width: 142px;
+    --animated-switch-height: 32px;
+    --animated-switch-thumb-width: 67px;
+    --animated-switch-thumb-height: 28px;
+    --animated-switch-thumb-travel: 69px;
+    --animated-switch-grow-in-offset: 24px;
+    --animated-switch-grow-out-offset: 6px;
+  }
+
+  .animated-switch-thumb {
+    top: 2px;
+    left: 2px;
+  }
+
+  .animated-switch-track {
+    padding: 2px;
+  }
+
+  .animated-switch-label {
+    font-size: 11px;
+    line-height: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-switch-track,
+  .animated-switch-thumb,
+  .animated-switch-label {
+    animation: none !important;
+    transition: none !important;
+  }
+}
