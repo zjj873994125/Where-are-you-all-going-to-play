@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Popover,
   Input,
@@ -29,19 +29,31 @@ export default function CitySelector({ currentCity, onCityChange }: CitySelector
   const [isSearching, setIsSearching] = useState(false)
   const [isLocating, setIsLocating] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const searchRequestIdRef = useRef(0)
 
   const hotCities = getHotCities()
 
   // 搜索城市
   useEffect(() => {
+    const requestId = ++searchRequestIdRef.current
+    const keyword = searchKeyword.trim()
+
     const timer = setTimeout(async () => {
-      if (searchKeyword.trim()) {
+      if (keyword) {
         setIsSearching(true)
-        const results = await searchCity(searchKeyword)
-        setSearchResults(results)
-        setIsSearching(false)
+        try {
+          const results = await searchCity(keyword)
+          if (searchRequestIdRef.current !== requestId) return
+          setSearchResults(results)
+        } finally {
+          if (searchRequestIdRef.current === requestId) {
+            setIsSearching(false)
+          }
+        }
       } else {
+        if (searchRequestIdRef.current !== requestId) return
         setSearchResults([])
+        setIsSearching(false)
       }
     }, 300)
 

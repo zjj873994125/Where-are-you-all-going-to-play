@@ -37,7 +37,9 @@ function loadPlugin(pluginName: string): Promise<void> {
         resolve()
       } else {
         // 即使检查失败也尝试 resolve，因为有些插件加载后不会挂载到 AMap 对象上
-        console.warn(`Plugin ${fullName} loaded but check failed, trying anyway`)
+        if (import.meta.env.DEV) {
+          console.warn(`Plugin ${fullName} loaded but check failed, trying anyway`)
+        }
         resolve()
       }
     })
@@ -85,7 +87,6 @@ export async function searchPOI(
           }))
           resolve(pois)
         } else {
-          console.log('searchPOI result:', status, result)
           resolve([])
         }
       }
@@ -208,7 +209,6 @@ export async function getCurrentCity(): Promise<City | null> {
     })
 
     geolocation.getCityInfo((status: string, result: any) => {
-      console.log('getCityInfo 回调:', { status, result })
       if (status === 'complete') {
         const city = {
           name: result.city || result.province,
@@ -218,7 +218,6 @@ export async function getCurrentCity(): Promise<City | null> {
             lat: result.center.lat
           } : undefined
         }
-        console.log('定位成功，城市信息:', city)
         resolve(city)
       } else {
         console.error('获取城市失败:', result)
@@ -439,7 +438,6 @@ export async function getPOIDetail(poiId: string): Promise<POIDetail | null> {
         }
         resolve(detail)
       } else {
-        console.log('getPOIDetail result:', status, result)
         resolve(null)
       }
     })
@@ -496,7 +494,9 @@ export async function getDrivingRoute(
         resolve(route)
       }
       const timeoutId = setTimeout(() => {
-        console.warn('Driving search timeout')
+        if (import.meta.env.DEV) {
+          console.warn('Driving search timeout')
+        }
         finish(null)
       }, ROUTE_SEARCH_TIMEOUT_MS)
 
@@ -529,7 +529,9 @@ export async function getDrivingRoute(
             path,
           })
         } else {
-          console.warn('Driving search failed:', status, result?.info || result)
+          if (import.meta.env.DEV) {
+            console.warn('Driving search failed:', status, result?.info || result)
+          }
           finish(null)
         }
       })
@@ -582,7 +584,9 @@ export async function getTransitRoute(
         resolve(route)
       }
       const timeoutId = setTimeout(() => {
-        console.warn('Transfer search timeout')
+        if (import.meta.env.DEV) {
+          console.warn('Transfer search timeout')
+        }
         finish(null)
       }, ROUTE_SEARCH_TIMEOUT_MS)
 
@@ -633,7 +637,9 @@ export async function getTransitRoute(
             path,
           })
         } else {
-          console.warn('Transfer search failed:', status, result?.info || result)
+          if (import.meta.env.DEV) {
+            console.warn('Transfer search failed:', status, result?.info || result)
+          }
           finish(null)
         }
       })
@@ -721,8 +727,6 @@ export async function getBatchRouteTimes(
     return { times, routes: points.map(() => null) }
   }
 
-  console.log(`开始批量计算 ${mode} 路线，共 ${points.length} 个点`)
-
   const results: Array<{ time: number; route: RouteResult | null }> = []
   for (let start = 0; start < points.length; start += ROUTE_BATCH_SIZE) {
     const batch = points.slice(start, start + ROUTE_BATCH_SIZE)
@@ -741,10 +745,11 @@ export async function getBatchRouteTimes(
 
           if (route) {
             const minutes = Math.round(route.duration / 60)
-            console.log(`点 ${index + 1}: ${minutes} 分钟, 路线点数: ${route.path.length}`)
             return { time: minutes, route }
           } else {
-            console.warn(`点 ${index + 1}: 路线规划失败`)
+            if (import.meta.env.DEV) {
+              console.warn(`点 ${index + 1}: 路线规划失败`)
+            }
             return { time: 999, route: null }
           }
         } catch (e) {
@@ -763,7 +768,5 @@ export async function getBatchRouteTimes(
 
   const times = results.map(r => r.time)
   const routes = results.map(r => r.route)
-
-  console.log('批量路线计算结果:', times)
   return { times, routes }
 }

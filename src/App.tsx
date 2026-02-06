@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo, Suspense, lazy } from 'react'
 import { message, Modal, Checkbox, Divider, Tag, Button } from 'antd'
 import { debounce } from 'lodash'
 import MapView from './components/MapView'
@@ -6,13 +6,11 @@ import LocationPanel from './components/LocationPanel'
 import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
 import POIDetailCard from './components/POIDetailCard'
-import AIAssistant from './components/AIAssistant'
 import MapToolbar from './components/MapToolbar'
 import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City, MidPointMode } from './types'
 import { calculateDistance, calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
 import { searchPOI, getCurrentCity, getCurrentLocation, getPOIDetail, RouteResult } from './utils/amap'
 import { useFavorites } from './hooks/useFavorites'
-import './App.css'
 
 // 当前版本号
 const APP_VERSION = '1.4.0'
@@ -33,6 +31,7 @@ const VALID_SEARCH_TYPES: SearchType[] = [
   '火车站',
   'custom',
 ]
+const AIAssistant = lazy(() => import('./components/AIAssistant'))
 
 interface ShareStateV1 {
   v: number
@@ -172,6 +171,7 @@ function App() {
   const hasInitializedRef = useRef(false)
   const hasCheckedWelcomeRef = useRef(false)
   const hasRestoredShareRef = useRef(false)
+  const debouncedPOISearchRef = useRef<{ cancel: () => void } | null>(null)
 
   // 从分享链接恢复会话
   useEffect(() => {
@@ -347,6 +347,7 @@ function App() {
   }, []) // 只执行一次
 
   const handleCityChange = useCallback((city: City) => {
+    debouncedPOISearchRef.current?.cancel()
     setCurrentCity(city)
     setPoints([])
     setMidPoint(null)
@@ -450,6 +451,7 @@ function App() {
   }, [points, computeMidPoint, midPointMode])
 
   const handleClearAll = useCallback(() => {
+    debouncedPOISearchRef.current?.cancel()
     setPoints([])
     setMidPoint(null)
     setTravelTimes([])
@@ -622,6 +624,19 @@ function App() {
     }, 200),
     []
   )
+
+  useEffect(() => {
+    debouncedPOISearchRef.current = debouncedPOISearch
+    return () => {
+      debouncedPOISearchRef.current = null
+    }
+  }, [debouncedPOISearch])
+
+  useEffect(() => {
+    return () => {
+      debouncedPOISearch.cancel()
+    }
+  }, [debouncedPOISearch])
 
   // 处理搜索范围变化，自动重新搜索
   const handleSearchRadiusChange = useCallback((radius: SearchRadius) => {
@@ -928,17 +943,19 @@ function App() {
         </div>
       </Modal>
 
-      <AIAssistant
-        appVersion={APP_VERSION}
-        appContext={{
-          currentCity,
-          points,
-          midPointMode,
-          searchRadius,
-          activeSearchType,
-          lastSearchKeyword,
-        }}
-      />
+      <Suspense fallback={null}>
+        <AIAssistant
+          appVersion={APP_VERSION}
+          appContext={{
+            currentCity,
+            points,
+            midPointMode,
+            searchRadius,
+            activeSearchType,
+            lastSearchKeyword,
+          }}
+        />
+      </Suspense>
     </div>
   )
 }

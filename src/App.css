@@ -21,8 +21,145 @@
   display: inline-flex;
 }
 
-.route-nav .ant-select {
+.route-nav-select {
   width: 120px;
+  height: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  font-size: 12px;
+  padding: 0 8px;
+  outline: none;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+}
+
+.route-nav-select:focus {
+  border-color: #3b82f6;
+}
+
+.route-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(1200px 520px at -10% -20%, rgba(34, 211, 238, 0.24), transparent 55%),
+    radial-gradient(900px 460px at 110% 120%, rgba(8, 145, 178, 0.22), transparent 55%),
+    rgba(236, 254, 255, 0.78);
+  backdrop-filter: blur(4px);
+}
+
+.route-loading-panel {
+  width: min(88vw, 340px);
+  border-radius: 16px;
+  border: 1px solid rgba(14, 116, 144, 0.18);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.94), rgba(240, 253, 250, 0.92));
+  box-shadow: 0 18px 40px rgba(14, 116, 144, 0.18);
+  padding: 20px 18px 16px;
+}
+
+.route-loading-mark {
+  width: 36px;
+  height: 36px;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.route-loading-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(8, 145, 178, 0.18);
+  border-top-color: #0891b2;
+  animation: route-loading-rotate 1s linear infinite;
+}
+
+.route-loading-dot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: #22d3ee;
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.18);
+  animation: route-loading-pulse 1.25s ease-in-out infinite;
+}
+
+.route-loading-text {
+  margin-bottom: 12px;
+}
+
+.route-loading-title {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.route-loading-subtitle {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.route-loading-track {
+  position: relative;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(8, 145, 178, 0.14);
+  overflow: hidden;
+}
+
+.route-loading-bar {
+  position: absolute;
+  left: -40%;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22d3ee, #0891b2);
+  animation: route-loading-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes route-loading-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes route-loading-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.95;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes route-loading-slide {
+  0% {
+    left: -40%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-loading-ring,
+  .route-loading-dot,
+  .route-loading-bar {
+    animation: none;
+  }
 }
 
 /* 顶部城市选择器 */

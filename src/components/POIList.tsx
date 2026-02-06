@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { List, Typography, Skeleton, Empty } from 'antd'
-import { CarOutlined, WifiOutlined, BulbOutlined } from '@ant-design/icons'
 import { POI, NavMode } from '@/types'
 import { generateAmapNavUrls } from '@/utils/mapCalc'
 import Icon from './Icon'
