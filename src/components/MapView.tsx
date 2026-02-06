@@ -129,6 +129,7 @@ export default function MapView({
   const initializedCityRef = useRef<string | null>(null)
   const rangingToolRef = useRef<any>(null)
   const satelliteLayerRef = useRef<any>(null)
+  const mapClickHandlerRef = useRef<((e: any) => void) | null>(null)
   const isRangingRef = useRef<boolean>(false)
   const mapInitializedRef = useRef<boolean>(false) // 防止重复初始化
   const routePolylinesRef = useRef<any[]>([]) // 路线折线
@@ -145,6 +146,65 @@ export default function MapView({
   useEffect(() => {
     onMapClickRef.current = onMapClick
   }, [onMapClick])
+
+  const clearMapObjects = () => {
+    markersRef.current.forEach((marker) => marker?.setMap?.(null))
+    markersRef.current = []
+
+    poiMarkersRef.current.forEach((marker) => marker?.setMap?.(null))
+    poiMarkersRef.current = []
+
+    if (clusterRef.current) {
+      clusterRef.current.setMap?.(null)
+      clusterRef.current = null
+    }
+
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.setMap?.(null)
+      selectedMarkerRef.current = null
+    }
+
+    if (circleRef.current) {
+      circleRef.current.setMap?.(null)
+      circleRef.current = null
+    }
+
+    routePolylinesRef.current.forEach((polyline) => polyline?.setMap?.(null))
+    routePolylinesRef.current = []
+
+    if (rangingToolRef.current) {
+      rangingToolRef.current.turnOff?.()
+      rangingToolRef.current.close?.()
+      rangingToolRef.current = null
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      clearMapObjects()
+
+      const map = mapInstanceRef.current
+      if (map) {
+        if (mapClickHandlerRef.current) {
+          map.off?.('click', mapClickHandlerRef.current)
+        }
+
+        if (satelliteLayerRef.current) {
+          map.remove?.(satelliteLayerRef.current)
+        }
+
+        map.clearMap?.()
+        map.destroy?.()
+      }
+
+      mapClickHandlerRef.current = null
+      satelliteLayerRef.current = null
+      mapInstanceRef.current = null
+      mapInitializedRef.current = false
+      initializedCityRef.current = null
+      isRangingRef.current = false
+    }
+  }, [])
 
   // 初始化或更新地图
   useEffect(() => {
@@ -177,11 +237,12 @@ export default function MapView({
         viewMode: '2D',
       })
 
-      map.on('click', (e: any) => {
+      mapClickHandlerRef.current = (e: any) => {
         if (!isRangingRef.current) {
           onMapClickRef.current(e.lnglat.lng, e.lnglat.lat)
         }
-      })
+      }
+      map.on('click', mapClickHandlerRef.current)
 
       mapInstanceRef.current = map
       initializedCityRef.current = cityName
