@@ -172,6 +172,7 @@ function App() {
   const hasInitializedRef = useRef(false)
   const hasCheckedWelcomeRef = useRef(false)
   const hasRestoredShareRef = useRef(false)
+  const debouncedPOISearchRef = useRef<{ cancel: () => void } | null>(null)
 
   // 从分享链接恢复会话
   useEffect(() => {
@@ -347,6 +348,7 @@ function App() {
   }, []) // 只执行一次
 
   const handleCityChange = useCallback((city: City) => {
+    debouncedPOISearchRef.current?.cancel()
     setCurrentCity(city)
     setPoints([])
     setMidPoint(null)
@@ -450,6 +452,7 @@ function App() {
   }, [points, computeMidPoint, midPointMode])
 
   const handleClearAll = useCallback(() => {
+    debouncedPOISearchRef.current?.cancel()
     setPoints([])
     setMidPoint(null)
     setTravelTimes([])
@@ -622,6 +625,19 @@ function App() {
     }, 200),
     []
   )
+
+  useEffect(() => {
+    debouncedPOISearchRef.current = debouncedPOISearch
+    return () => {
+      debouncedPOISearchRef.current = null
+    }
+  }, [debouncedPOISearch])
+
+  useEffect(() => {
+    return () => {
+      debouncedPOISearch.cancel()
+    }
+  }, [debouncedPOISearch])
 
   // 处理搜索范围变化，自动重新搜索
   const handleSearchRadiusChange = useCallback((radius: SearchRadius) => {
