@@ -158,6 +158,7 @@ export default function TripPlanPage() {
     trip: !isMobile,
   })
   const locateMenuLockRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRequestIdRef = useRef(0)
 
   const routePoints = useMemo<TripRouteItem[]>(() => {
     if (!myLocation || !isComputed) {
@@ -341,17 +342,36 @@ export default function TripPlanPage() {
   }
 
   const debouncedSearch = useMemo(
-    () => debounce(async (value: string) => {
-      if (!value.trim()) return
+    () => debounce(async (value: string, requestId: number) => {
+      const keyword = value.trim()
+      if (!keyword) return
       const city = currentCity?.name || myCity || undefined
-      const results = await searchByKeyword(value, city)
-      setSearchResults(results)
+      try {
+        const results = await searchByKeyword(keyword, city)
+        if (searchRequestIdRef.current !== requestId) return
+        setSearchResults(results)
+      } catch {
+        if (searchRequestIdRef.current !== requestId) return
+        setSearchResults([])
+      }
     }, 200),
     [currentCity?.name, myCity]
   )
 
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel()
+    }
+  }, [debouncedSearch])
+
   const handleSearch = (value: string) => {
-    debouncedSearch(value)
+    const requestId = ++searchRequestIdRef.current
+    if (!value.trim()) {
+      debouncedSearch.cancel()
+      setSearchResults([])
+      return
+    }
+    debouncedSearch(value, requestId)
   }
 
   const handleSelectSearch = (_value: string, option: any) => {
@@ -369,6 +389,8 @@ export default function TripPlanPage() {
       message.info('该地点已在行程中')
       return
     }
+    searchRequestIdRef.current += 1
+    debouncedSearch.cancel()
     setSearchKeyword('')
     setSearchResults([])
     message.success('已添加到行程')
