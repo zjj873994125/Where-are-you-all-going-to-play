@@ -945,6 +945,7 @@ function App() {
 
       <Suspense fallback={null}>
         <AIAssistant
+          scene="midpoint"
           appVersion={APP_VERSION}
           appContext={{
             currentCity,
