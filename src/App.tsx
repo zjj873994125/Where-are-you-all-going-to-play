@@ -7,6 +7,7 @@ import POIList from './components/POIList'
 import CitySelector from './components/CitySelector'
 import POIDetailCard from './components/POIDetailCard'
 import AIAssistant from './components/AIAssistant'
+import MapToolbar from './components/MapToolbar'
 import { LocationPoint, MidPoint, POI, POIDetail, SearchType, SearchRadius, City, MidPointMode } from './types'
 import { calculateDistance, calculateMidPoint, calculateWeightedMidPoint } from './utils/mapCalc'
 import { searchPOI, getCurrentCity, getCurrentLocation, getPOIDetail, RouteResult } from './utils/amap'
@@ -764,46 +765,55 @@ function App() {
         </div>
       </div>
       {/* 地图工具栏 */}
-      <div className="map-toolbar">
-        <button
-          className={`toolbar-btn ${isSatellite ? 'active' : ''}`}
-          onClick={(e) => { e.stopPropagation(); setIsSatellite(!isSatellite) }}
-          title="卫星地图"
-        >
-          🛰️ 卫星
-        </button>
-        <button
-          className={`toolbar-btn ${isLocatingMe ? 'active' : ''}`}
-          onClick={(e) => { e.stopPropagation(); handleLocateMe() }}
-          title="定位我的位置"
-          disabled={isLocatingMe}
-        >
-          {isLocatingMe ? '📍 定位中' : '📍 定位'}
-        </button>
-        {!isMobile && (
-          <button
-            className={`toolbar-btn ${isRanging ? 'active' : ''}`}
-            onClick={(e) => { e.stopPropagation(); setIsRanging(!isRanging) }}
-            title="测距工具"
-          >
-            📏 测距
-          </button>
-        )}
-        <button
-          className="toolbar-btn"
-          onClick={(e) => { e.stopPropagation(); handleShareSession() }}
-          title="分享当前会话"
-        >
-          🔗 分享
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={(e) => { e.stopPropagation(); setShowWelcomeModal(true) }}
-          title="使用说明"
-        >
-          💡
-        </button>
-      </div>
+      <MapToolbar
+        actions={[
+          {
+            key: 'satellite',
+            label: '🛰️ 卫星',
+            className: isSatellite ? 'active' : '',
+            onClick: (e) => {
+              e.stopPropagation()
+              setIsSatellite(!isSatellite)
+            },
+          },
+          {
+            key: 'locate',
+            label: isLocatingMe ? '📍 定位中' : '📍 定位',
+            className: isLocatingMe ? 'active' : '',
+            loading: isLocatingMe,
+            disabled: isLocatingMe,
+            onClick: (e) => {
+              e.stopPropagation()
+              handleLocateMe()
+            },
+          },
+          ...(!isMobile ? [{
+            key: 'ranging',
+            label: '📏 测距',
+            className: isRanging ? 'active' : '',
+            onClick: (e) => {
+              e.stopPropagation()
+              setIsRanging(!isRanging)
+            },
+          }] : []),
+          {
+            key: 'share',
+            label: '🔗 分享',
+            onClick: (e) => {
+              e.stopPropagation()
+              handleShareSession()
+            },
+          },
+          {
+            key: 'help',
+            label: '💡',
+            onClick: (e) => {
+              e.stopPropagation()
+              setShowWelcomeModal(true)
+            },
+          },
+        ]}
+      />
       {/* 右侧悬浮面板 - 附近场所 */}
       {pois.length > 0 && (
         <div className="floating-panels-right">

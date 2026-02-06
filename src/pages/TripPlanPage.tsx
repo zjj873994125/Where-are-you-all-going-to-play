@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AutoComplete, Button, Dropdown, Empty, Input, Modal, Select, Space, Steps, Tag, Typography, message } from 'antd'
 import type { MenuProps } from 'antd'
-import { CopyOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, FolderOpenOutlined, PlusOutlined, QuestionCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
+import { CopyOutlined, DeleteOutlined, EditOutlined, FolderOpenOutlined, PlusOutlined, QuestionCircleOutlined, SearchOutlined, StarOutlined } from '@ant-design/icons'
 import { debounce } from 'lodash'
 import MapView from '@/components/MapView'
+import MapToolbar from '@/components/MapToolbar'
+import AIAssistant from '@/components/AIAssistant'
 import { calculateDistance } from '@/utils/mapCalc'
 import { getCityInfoFromLocation, getCurrentCity, getCurrentLocation, searchByKeyword } from '@/utils/amap'
 import CitySelector from '@/components/CitySelector'
@@ -140,6 +142,8 @@ export default function TripPlanPage() {
   const [isComputed, setIsComputed] = useState(false)
   const [routeMode, setRouteMode] = useState<RouteMode>('tsp')
   const [isLocateMenuOpen, setIsLocateMenuOpen] = useState(false)
+  const [isSatellite, setIsSatellite] = useState(false)
+  const [isRanging, setIsRanging] = useState(false)
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null)
@@ -238,6 +242,10 @@ export default function TripPlanPage() {
       setIsLocating(false)
     }
   }
+
+  const handleRangingEnd = useCallback(() => {
+    setIsRanging(false)
+  }, [])
 
   useEffect(() => {
     if (hasAutoCityRef.current) return
@@ -504,6 +512,26 @@ export default function TripPlanPage() {
     URL.revokeObjectURL(url)
   }
 
+  const handleShareTrip = async () => {
+    if (tripPoints.length === 0) {
+      message.info('当前没有可分享的地点')
+      return
+    }
+    const payload = tripPoints.map((point) => ({
+      name: point.name,
+      address: point.address,
+      lng: point.lng,
+      lat: point.lat,
+    }))
+    const text = JSON.stringify(payload, null, 2)
+    try {
+      await navigator.clipboard.writeText(text)
+      message.success('已复制行程 JSON，可直接分享')
+    } catch (error) {
+      message.error('复制失败，请使用导出 JSON')
+    }
+  }
+
   const jsonSample = `[{ 
   "name": "景点A",
   "lng": 120.12,
@@ -577,6 +605,9 @@ export default function TripPlanPage() {
         selectedPOI={null}
         focusPoint={focusPoint}
         currentCity={currentCity}
+        isSatellite={isSatellite}
+        isRanging={isRanging}
+        onRangingEnd={handleRangingEnd}
         rankedPoints={rankedPoints}
         highlightTop={myLocation && isComputed ? HIGHLIGHT_TOP : 0}
         autoFit={false}
@@ -757,32 +788,63 @@ export default function TripPlanPage() {
         </div>
       </div>
 
-      <div className="map-toolbar trip-map-toolbar-inline">
-        <Dropdown
-          placement="bottomRight"
-          trigger={['click']}
-          open={isLocateMenuOpen}
-          onOpenChange={handleLocateMenuOpenChange}
-          menu={{
-            items: [
-              { key: 'auto', label: '自动定位' },
-              { key: 'manual', label: '手动定位（地图点击）' },
-            ],
-            onClick: handleLocateMenuClick,
-          }}
-        >
-          <Button
-            className={`toolbar-btn trip-locate-btn ${isLocating || isManualLocating ? 'active' : ''}`}
-            disabled={isLocating}
-            loading={isLocating}
-            color="pink"
-            type="primary"
-            icon={<EnvironmentOutlined />}
-          >
-            定位
-          </Button>
-        </Dropdown>
-      </div>
+      <MapToolbar
+        actions={[
+          {
+            key: 'satellite',
+            label: '🛰️ 卫星',
+            className: isSatellite ? 'active' : '',
+            onClick: (e) => {
+              e.stopPropagation()
+              setIsSatellite(!isSatellite)
+            },
+          },
+          {
+            key: 'locate',
+            label: '📍 定位',
+            className: isLocating || isManualLocating ? 'active' : '',
+            loading: isLocating,
+            disabled: isLocating,
+            onClick: (e) => {
+              e.stopPropagation()
+            },
+            dropdown: {
+              placement: 'bottomRight',
+              trigger: ['click'],
+              open: isLocateMenuOpen,
+              onOpenChange: handleLocateMenuOpenChange,
+              menu: {
+                items: [
+                  { key: 'auto', label: '自动定位' },
+                  { key: 'manual', label: '手动定位（地图点击）' },
+                ],
+                onClick: handleLocateMenuClick,
+              },
+            },
+          },
+          ...(!isMobile
+            ? [
+                {
+                  key: 'ranging',
+                  label: '📏 测距',
+                  className: isRanging ? 'active' : '',
+                  onClick: (e) => {
+                    e.stopPropagation()
+                    setIsRanging(!isRanging)
+                  },
+                },
+              ]
+            : []),
+          {
+            key: 'share',
+            label: '🔗 分享',
+            onClick: (e) => {
+              e.stopPropagation()
+              handleShareTrip()
+            },
+          },
+        ]}
+      />
 
       <Modal
         title={(
@@ -914,7 +976,7 @@ export default function TripPlanPage() {
           direction="vertical"
           size="small"
           items={[
-            { title: '定位自己', description: '点击左上角“定位方式”，先定位自己的位置（自动或手动）。' },
+            { title: '定位自己', description: '点击右上角“定位方式”，先定位自己的位置（自动或手动）。' },
             { title: '添加地点', description: '通过地图点击、搜索或导入添加想去的地点。' },
             { title: '选择方式', description: '选择计算方式（路线优化 / 离我最近）。' },
             { title: '开始计算', description: '点击“开始计算”，生成 1、2、3、4 的推荐顺序。' },
@@ -978,6 +1040,13 @@ export default function TripPlanPage() {
           )}
         </div>
       </Modal>
+
+      <AIAssistant
+        appContext={{
+          currentCity,
+          points: mapPoints,
+        }}
+      />
     </div>
   )
 }

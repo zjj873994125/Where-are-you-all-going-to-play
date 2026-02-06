@@ -197,10 +197,21 @@ function buildContextPrompt(appContext?: AppContext, appVersion?: string): strin
 interface AIAssistantProps {
   appContext?: AppContext
   appVersion?: string
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+  showToggle?: boolean
 }
 
-export default function AIAssistant({ appContext, appVersion }: AIAssistantProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export default function AIAssistant({
+  appContext,
+  appVersion,
+  isOpen,
+  onOpenChange,
+  showToggle = true,
+}: AIAssistantProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const resolvedOpen = isOpen ?? internalOpen
+  const setOpen = onOpenChange ?? setInternalOpen
   const [provider, setProvider] = useState<Provider>(() => {
     const saved = safeGetStorage(STORAGE_PROVIDER_KEY)
     return saved === 'openai' || saved === 'zhipu' ? saved : 'zhipu'
@@ -407,14 +418,15 @@ export default function AIAssistant({ appContext, appVersion }: AIAssistantProps
     <>
       <button
         className="ai-assistant-toggle"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-pressed={isOpen}
-        title={isOpen ? '关闭杰少助手' : '打开杰少助手'}
+        onClick={() => setOpen(!resolvedOpen)}
+        aria-pressed={resolvedOpen}
+        title={resolvedOpen ? '关闭杰少助手' : '打开杰少助手'}
+        style={!showToggle ? { display: 'none' } : undefined}
       >
         <span className="ai-assistant-toggle-ring" />
         <span className="ai-assistant-toggle-text">AI</span>
       </button>
-      {isOpen && (
+      {resolvedOpen && (
         <div className="ai-assistant-panel">
           <div className="ai-assistant-header">
             <div className="ai-assistant-title">
@@ -440,7 +452,7 @@ export default function AIAssistant({ appContext, appVersion }: AIAssistantProps
               </button>
               <button
                 className="ai-assistant-close"
-                onClick={() => setIsOpen(false)}
+                onClick={() => setOpen(false)}
                 aria-label="关闭杰少助手"
               >
                 ✕

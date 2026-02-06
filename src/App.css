@@ -1467,14 +1467,15 @@
 }
 
 .ai-settings-collapsible {
-  overflow: hidden;
-  max-height: 520px;
+  overflow-y: auto;
+  max-height: min(360px, 40vh);
   opacity: 1;
   transition: max-height 0.28s ease, opacity 0.2s ease;
 }
 
 .ai-settings-collapsible.collapsed {
   max-height: 0;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
 }
@@ -1593,6 +1594,7 @@
 
 .ai-assistant-messages {
   flex: 1;
+  min-height: 0;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
