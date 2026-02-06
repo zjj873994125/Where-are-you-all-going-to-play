@@ -1,5 +1,7 @@
 import { Suspense, lazy } from 'react'
 import { HashRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import AnimatedSwitch from './components/AnimatedSwitch'
+import './RouterApp.css'
 
 const MidPointPage = lazy(() => import('./App'))
 const TripPlanPage = lazy(() => import('./pages/TripPlanPage'))
@@ -28,25 +30,29 @@ function RouteNav() {
   const location = useLocation()
   const navigate = useNavigate()
   const search = location.pathname === '/' ? location.search : ''
+  const isTrip = location.pathname.startsWith('/trip')
 
-  const handleChange = (value: string) => {
-    if (value === '/') {
-      navigate({ pathname: '/', search })
-    } else {
+  const handleSwitchChange = (checked: boolean) => {
+    if (checked) {
       navigate('/trip')
+    } else {
+      navigate({ pathname: '/', search })
     }
   }
 
   return (
     <div className="route-nav">
-      <select
-        className="route-nav-select"
-        value={location.pathname.startsWith('/trip') ? '/trip' : '/'}
-        onChange={(e) => handleChange(e.target.value)}
-      >
-        <option value="/">中点选址</option>
-        <option value="/trip">行程规划</option>
-      </select>
+      <AnimatedSwitch
+        checked={isTrip}
+        onChange={handleSwitchChange}
+        className="route-nav-switch"
+        leftLabel="中点"
+        rightLabel="行程"
+        ariaLabel="切换页面：中点 / 行程"
+        offTrackGradient="linear-gradient(135deg, #16a34a 0%, #22c55e 100%)"
+        onTrackGradient="linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)"
+        focusRingColor="rgba(125, 211, 252, 0.35)"
+      />
     </div>
   )
 }

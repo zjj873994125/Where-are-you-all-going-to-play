@@ -13,31 +13,6 @@
   background: #f0f2f5;
 }
 
-.route-nav {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
-  z-index: 90;
-  display: inline-flex;
-}
-
-.route-nav-select {
-  width: 120px;
-  height: 28px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #334155;
-  font-size: 12px;
-  padding: 0 8px;
-  outline: none;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
-}
-
-.route-nav-select:focus {
-  border-color: #3b82f6;
-}
-
 .route-loading-overlay {
   position: fixed;
   inset: 0;
