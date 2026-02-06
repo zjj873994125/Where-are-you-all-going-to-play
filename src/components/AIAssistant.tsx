@@ -10,6 +10,7 @@ type ChatMessage = {
 }
 
 type Provider = 'openai' | 'zhipu'
+type AssistantScene = 'midpoint' | 'trip'
 
 const STORAGE_PROVIDER_KEY = 'meetpoint_ai_provider'
 const STORAGE_CONTEXT_KEY = 'meetpoint_ai_include_context'
@@ -41,20 +42,42 @@ const PROVIDER_CONFIG: Record<Provider, { label: string; apiUrl: string; keyLabe
   },
 }
 
-const SYSTEM_PROMPT = [
-  '你是“大家去哪玩”应用内的杰少助手。',
-  '你要自称为杰少，你是一个幽默风趣、乐于助人的大帅哥，你说话的时候要幽默风趣，要给用户带来快乐。',
-  '你擅长：解释功能、排查地图/路线/定位/导航问题、给出操作建议。',
-  '回答要简洁、可执行、面向非技术用户。',
-  '如果问题不清楚，先问1-2个澄清问题；不要臆测不存在的功能。',
-  '应用功能概览：',
-  '1) 添加地点：搜索或点击地图；支持拖拽排序。',
-  '2) 中点计算：直线/驾车/公交三种模式。',
-  '3) 附近搜索：中点附近搜索餐厅/咖啡厅等。',
-  '4) 导航：驾车/步行/公交，移动端可唤起高德。',
-  '5) 我的定位：一键定位并添加到列表。',
-  '6) 分享会话：复制链接，打开即可恢复。',
-].join(' ')
+function buildSystemPrompt(scene: AssistantScene): string {
+  const common = [
+    '你是“大家去哪玩”应用内的杰少助手。',
+    '你要自称为杰少，你是一个幽默风趣、乐于助人的大帅哥，你说话的时候要幽默风趣，要给用户带来快乐。',
+    '你擅长：解释功能、排查地图/路线/定位/导航问题、给出操作建议。',
+    '回答要简洁、可执行、面向非技术用户。',
+    '如果问题不清楚，先问1-2个澄清问题；不要臆测不存在的功能。',
+  ]
+
+  if (scene === 'trip') {
+    return [
+      ...common,
+      '当前页面是「行程规划」，优先围绕行程规划功能回答。',
+      '行程规划功能概览：',
+      '1) 定位自己：支持自动定位和手动地图点选。',
+      '2) 添加行程点：搜索、地图点击、导入 JSON、收藏夹导入。',
+      '3) 计算方式：路线优化（近似 TSP）或离我最近排序。',
+      '4) 行程收藏夹：创建/重命名/删除收藏夹，地点可加入收藏夹。',
+      '5) 导出与分享：导出 JSON，复制行程 JSON。',
+      '如果用户提问明显属于中点页功能，先说明当前在行程页，再给切换建议。',
+    ].join(' ')
+  }
+
+  return [
+    ...common,
+    '当前页面是「中点选址」，优先围绕中点选址功能回答。',
+    '中点选址功能概览：',
+    '1) 添加地点：搜索或点击地图；支持拖拽排序。',
+    '2) 中点计算：直线/驾车/公交三种模式。',
+    '3) 附近搜索：中点附近搜索餐厅/咖啡厅等。',
+    '4) 导航：驾车/步行/公交，移动端可唤起高德。',
+    '5) 我的定位：一键定位并添加到列表。',
+    '6) 分享会话：复制链接，打开即可恢复。',
+    '如果用户提问明显属于行程页功能，先说明当前在中点页，再给切换建议。',
+  ].join(' ')
+}
 
 type AppContext = {
   currentCity?: City | null
@@ -63,6 +86,10 @@ type AppContext = {
   searchRadius?: SearchRadius
   activeSearchType?: SearchType | null
   lastSearchKeyword?: string
+  routeMode?: 'tsp' | 'nearby'
+  isRouteComputed?: boolean
+  tripPointCount?: number
+  hasMyLocation?: boolean
 }
 
 function safeGetStorage(key: string, fallback = ''): string {
@@ -176,14 +203,34 @@ function safeSetStorage(key: string, value: string) {
   }
 }
 
-function buildContextPrompt(appContext?: AppContext, appVersion?: string): string {
+function buildContextPrompt(
+  appContext: AppContext | undefined,
+  appVersion: string | undefined,
+  scene: AssistantScene
+): string {
   if (!appContext) return ''
   const points = appContext.points || []
   const pointNames = points.map((p) => p.name).filter(Boolean)
   const hasMyLocation = points.some((p) => p.isMyLocation)
 
+  if (scene === 'trip') {
+    const tripPointCount = appContext.tripPointCount ?? points.filter((p) => !p.isMyLocation).length
+    const routeModeLabel = appContext.routeMode === 'nearby' ? '离我最近' : '路线优化'
+    return [
+      `当前应用版本：${appVersion || '未知'}`,
+      '当前页面：行程规划',
+      `当前城市：${appContext.currentCity?.name || '未设置'}`,
+      `我的位置：${appContext.hasMyLocation || hasMyLocation ? '已定位' : '未定位'}`,
+      `行程点数量：${tripPointCount}`,
+      `行程点名称：${pointNames.length > 0 ? pointNames.join('、') : '无'}`,
+      `计算方式：${routeModeLabel}`,
+      `是否已计算顺序：${appContext.isRouteComputed ? '是' : '否'}`,
+    ].join('\n')
+  }
+
   return [
     `当前应用版本：${appVersion || '未知'}`,
+    '当前页面：中点选址',
     `当前城市：${appContext.currentCity?.name || '未设置'}`,
     `中点模式：${appContext.midPointMode || 'straight'}`,
     `搜索范围：${appContext.searchRadius || 1000}m`,
@@ -200,6 +247,7 @@ interface AIAssistantProps {
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
   showToggle?: boolean
+  scene?: AssistantScene
 }
 
 export default function AIAssistant({
@@ -208,6 +256,7 @@ export default function AIAssistant({
   isOpen,
   onOpenChange,
   showToggle = true,
+  scene = 'midpoint',
 }: AIAssistantProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const resolvedOpen = isOpen ?? internalOpen
@@ -240,6 +289,7 @@ export default function AIAssistant({
   const listRef = useRef<HTMLDivElement>(null)
   const typingTimerRef = useRef<number | null>(null)
   const readmeSections = useMemo(() => buildReadmeSections(readmeText), [])
+  const systemPrompt = useMemo(() => buildSystemPrompt(scene), [scene])
 
   useEffect(() => {
     if (listRef.current) {
@@ -342,12 +392,12 @@ export default function AIAssistant({
     setError('')
 
     try {
-      const contextPrompt = includeContext ? buildContextPrompt(appContext, appVersion) : ''
+      const contextPrompt = includeContext ? buildContextPrompt(appContext, appVersion, scene) : ''
       const readmePrompt = includeReadme
         ? buildReadmeContext(readmeSections, trimmed)
         : ''
       const baseMessages = [
-        { role: provider === 'openai' ? 'developer' : 'system', content: SYSTEM_PROMPT },
+        { role: provider === 'openai' ? 'developer' : 'system', content: systemPrompt },
         ...(contextPrompt ? [{ role: provider === 'openai' ? 'developer' : 'system', content: contextPrompt }] : []),
         ...(readmePrompt ? [{ role: provider === 'openai' ? 'developer' : 'system', content: readmePrompt }] : []),
       ]
@@ -395,10 +445,15 @@ export default function AIAssistant({
     }
   }
 
-  const quickPrompts = [
-    '为什么路线不显示？',
-    '如何分享当前会话？',
-  ]
+  const quickPrompts = scene === 'trip'
+    ? [
+        '怎么按离我最近排序？',
+        '如何导入 JSON 到行程？',
+      ]
+    : [
+        '为什么路线不显示？',
+        '如何分享当前会话？',
+      ]
 
   const helpContent = provider === 'openai'
     ? {

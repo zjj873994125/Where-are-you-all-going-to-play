@@ -1065,9 +1065,14 @@ export default function TripPlanPage() {
 
       <Suspense fallback={null}>
         <AIAssistant
+          scene="trip"
           appContext={{
             currentCity,
             points: mapPoints,
+            routeMode,
+            isRouteComputed: isComputed,
+            tripPointCount: tripPoints.length,
+            hasMyLocation: !!myLocation,
           }}
         />
       </Suspense>
